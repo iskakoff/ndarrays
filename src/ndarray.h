@@ -13,38 +13,35 @@ struct ndarray {
   template<typename...Indices>
   ndarray(size_t d1, Indices...inds) : ndarray(std::array<size_t, sizeof...(inds) + 1>{{d1, size_t(inds)...}}) {}
   template<size_t D>
-  ndarray(const std::array<size_t, D> &dim) : size(get_size(dim)),
-                                              shape(dim.begin(), dim.end()),
-                                              strides(get_strides(dim)),
-                                              data(new T[size], std::default_delete<T[]>()) {}
+  ndarray(const std::array<size_t, D> &dim) : size_(get_size(dim)),
+                                              shape_(dim.begin(), dim.end()),
+                                              strides_(get_strides(dim)),
+                                              data_(new T[size_], std::default_delete<T[]>()) {}
 
   template<typename...Indices>
   ndarray(const ndarray<T> & ref, size_t d1, Indices...inds) /* TODO: implement me! */{}
 
-  template<typename Scalar>
-  ndarray(Scalar)
+//  template<typename Scalar>
+//  ndarray(Scalar scalar) :  {
+//
+//  }
 
 
   virtual ~ndarray() {
   }
 
-  size_t size;
-  std::vector<size_t> shape;
-  std::vector<size_t> strides;
-  std::shared_ptr<T> data;
-
   template<typename...Indices>
   const T* ref(Indices...inds) const {
-    return &data.get()[get_index(inds...)];
+    return &data_.get()[get_index(inds...)];
   }
 
   template<typename...Indices>
   T* ref(Indices...inds) {
-    return &data.get()[get_index(inds...)];
+    return &data_.get()[get_index(inds...)];
   }
 
   void set_zero() {
-    std::fill(data, data.get()+size, 0);
+    std::fill(data_, data_.get() + size_, 0);
   }
 
 
@@ -67,24 +64,54 @@ struct ndarray {
 
   };
 
+  // Data accessors
 
+  const std::shared_ptr<T> &data() const {
+    return data_;
+  }
+
+  std::shared_ptr<T> &data() {
+    return data_;
+  }
+
+  size_t size() const {
+    return size_;
+  }
+
+  size_t offset() const {
+    return offset_;
+  }
+
+  const std::vector<size_t> &shape() const {
+    return shape_;
+  }
+
+  const std::vector<size_t> &strides() const {
+    return strides_;
+  }
 
 private:
+  size_t size_;
+  size_t offset_;
+  std::vector<size_t> shape_;
+  std::vector<size_t> strides_;
+  std::shared_ptr<T> data_;
+
   template<typename ...Indices>
   size_t get_index(Indices...inds) const {
 #ifndef NDEBUG
-    if (sizeof...(Indices) > shape.size())
+    if (sizeof...(Indices) > shape_.size())
       throw std::logic_error("wrong dimensions");
 #endif
 
     std::array<size_t, sizeof...(Indices)> ind_arr{{size_t(inds)...}};
 #ifndef NDEBUG
     for(size_t i = 0; i < ind_arr.size(); ++i ) {
-      if( ind_arr[i] >= shape[i] )
+      if (ind_arr[i] >= shape_[i])
         throw std::logic_error(std::to_string(i) + "-th index is larger than its dimension.");
     }
 #endif
-    std::transform(ind_arr.begin(), ind_arr.end(), strides.begin(), ind_arr.begin(), std::multiplies<size_t>());
+    std::transform(ind_arr.begin(), ind_arr.end(), strides_.begin(), ind_arr.begin(), std::multiplies<size_t>());
     size_t ind = std::accumulate(ind_arr.begin(), ind_arr.end(), size_t(0), std::plus<size_t>());
     return ind;
   }
@@ -102,6 +129,8 @@ private:
       str[k] = str[k + 1] * shape[k + 1];
     return str;
   }
+
+
 };
 
 

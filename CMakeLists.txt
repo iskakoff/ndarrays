@@ -13,6 +13,3 @@ if(TESTING)
     enable_testing()
     add_subdirectory(test)
 endif(TESTING)
-
-
-add_executable(crap ndarray.h main.cpp)
