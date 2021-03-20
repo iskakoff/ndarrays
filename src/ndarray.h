@@ -13,13 +13,20 @@ struct ndarray {
   template<typename...Indices>
   ndarray(size_t d1, Indices...inds) : ndarray(std::array<size_t, sizeof...(inds) + 1>{{d1, size_t(inds)...}}) {}
   template<size_t D>
-  ndarray(const std::array<size_t, D> &dim) : size_(get_size(dim)),
+  ndarray(const std::array<size_t, D> &dim) : size_(get_size(dim)), offset_(0),
                                               shape_(dim.begin(), dim.end()),
                                               strides_(get_strides(dim)),
                                               data_(new T[size_], std::default_delete<T[]>()) {}
 
+
   template<typename...Indices>
-  ndarray(const ndarray<T> & ref, size_t d1, Indices...inds) /* TODO: implement me! */{}
+  ndarray(ndarray<T> &ref, size_t d1, Indices...inds)
+  /* TODO: implement me!
+   * 1. assign ref.data to data
+   * 2. compute new offset
+   * 3. compute new shape
+   * 4. compute new strides
+   * */{}
 
 //  template<typename Scalar>
 //  ndarray(Scalar scalar) :  {
