@@ -10,19 +10,43 @@ namespace ndarray {
   template<typename T>
   struct ndarray_t {
 
+    /**
+     * Constructor for initialization from dimensions (allocates memory for attribute data_).
+     *
+     * @tparam Indices type for indices.
+     * @param[in] d1 is first dimension.
+     * @param[in] inds are after first dimensions.
+     */
     template<typename...Indices>
     ndarray_t(size_t d1, Indices...inds) : ndarray_t(std::array<size_t, sizeof...(inds) + 1>{{d1, size_t(inds)...}}) {}
 
+    /**
+     * Constructor for initialization from array of dimensions (allocates memory for attribute data_).
+     *
+     * @param[in] dim is array while D is its dimension.
+     */
     template<size_t D>
     ndarray_t(const std::array<size_t, D> &dim) : shape_(dim.begin(), dim.end()),
                                                   strides_(get_strides(dim)),
                                                   size_(get_size(dim)), offset_(0),
                                                   data_(new T[size_], std::default_delete<T[]>()) {}
 
-
+    /**
+     * Constructor for slicing of existing instance.
+     *
+     * @tparam Indices type for indices.
+     * @param[in] ref is existing instance for slicing.
+     * @param[in] inds are indices for slicing.
+     */
     template<typename...Indices>
     ndarray_t(ndarray_t<T> &ref, Indices...inds) : ndarray_t(ref, std::array<size_t, sizeof...(inds)>{{size_t(inds)...}}) {}
 
+    /**
+     * Constructor for slicing of existing instance.
+     *
+     * @param[in] ref is existing instance for slicing.
+     * @param[in] inds is array contains indices for slicing.
+     */
     template<size_t D>
     ndarray_t(ndarray_t<T> &ref, const std::array<size_t, D> &inds) : shape_(get_shape(ref, inds)),
                                                                       strides_(get_strides(shape_)),
@@ -31,10 +55,9 @@ namespace ndarray {
                                                                       data_(ref.data_) {}
 
 
+    /// TODO: Add checks that tensor is zero-dimension.
     /**
-     * Convertion into scalar type
-     *
-     * TODO: Add checks that tensor is zero-dimension.
+     * Conversion into scalar type
      *
      * @tparam Scalar type of LHS argument
      * @return value of zero-dimension tensor
@@ -79,9 +102,7 @@ namespace ndarray {
     };
 
 
-    /**
-     * TODO: implement const slicing
-     */
+    /// TODO: implement const slicing
 
 
     virtual ~ndarray_t() {
