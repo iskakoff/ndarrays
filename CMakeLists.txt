@@ -10,6 +10,5 @@ add_subdirectory(src)
 
 option(TESTING "Enable testing" ON)
 if(TESTING)
-    enable_testing()
     add_subdirectory(test)
 endif(TESTING)
