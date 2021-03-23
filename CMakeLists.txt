@@ -3,6 +3,8 @@ project(Tensors)
 
 set(CMAKE_CXX_STANDARD 11)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
 include_directories(libs)
 include_directories(src)
 

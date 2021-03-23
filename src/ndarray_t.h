@@ -54,8 +54,6 @@ namespace ndarray {
                                                                       offset_(ref.offset_ + get_offset(ref.strides(), inds)),
                                                                       data_(ref.data_) {}
 
-
-    /// TODO: Add checks that tensor is zero-dimension.
     /**
      * Conversion into scalar type
      *
@@ -65,7 +63,7 @@ namespace ndarray {
     template<typename Scalar, typename = typename std::enable_if<std::is_convertible<T, Scalar>::value>::type>
     operator Scalar() const {
 #ifndef NDEBUG
-      zero_dimension();
+      check_zero_dimension();
 #endif
       return Scalar(data_.get()[offset_]);
     }
@@ -77,25 +75,29 @@ namespace ndarray {
      */
     operator T &() {
 #ifndef NDEBUG
-      zero_dimension();
+      check_zero_dimension();
 #endif
       return data_.get()[offset_];
     }
 
     operator const T &() const {
 #ifndef NDEBUG
-      zero_dimension();
+      check_zero_dimension();
 #endif
       return data_.get()[offset_];
     }
 
     /**
-     * Assignment
+     * Assign scalar value to zero-dimension tensor
+     *
+     * @tparam Scalar - scalar type
+     * @param rhs     - value of a scalar
+     * @return current tensor with updated value
      */
     template<typename Scalar, typename = typename std::enable_if<std::is_convertible<Scalar, T>::value>::type>
     ndarray_t<T> &operator=(const Scalar rhs) {
 #ifndef NDEBUG
-      zero_dimension();
+      check_zero_dimension();
 #endif
       data_.get()[offset_] = T(rhs);
       return *this;
@@ -110,6 +112,8 @@ namespace ndarray {
 
     template<typename...Indices>
     const T *ref(Indices...inds) const {
+      size_t num_of_inds = sizeof...(Indices);
+      check_dimensions(num_of_inds);
       return &data_.get()[offset_ + get_index(inds...)];
     }
 
@@ -169,6 +173,10 @@ namespace ndarray {
       return strides_;
     }
 
+    size_t dim() const {
+      return shape_.size();
+    }
+
   private:
     std::vector<size_t> shape_;
     std::vector<size_t> strides_;
@@ -226,9 +234,17 @@ namespace ndarray {
     /**
      * Check that array is zero-dimension. Throw an exception if it's not.
      */
-    void zero_dimension() const {
+    void check_zero_dimension() const {
       if (shape_.size() != 0) {
         throw std::runtime_error("Array is not directly castable to a scalar. Array dimension is " + std::to_string(shape_.size()));
+      }
+    }
+
+    void check_dimensions(size_t num_of_inds) const {
+      if (num_of_inds > shape_.size()) {
+        throw std::runtime_error(
+            "Number of indices (" + std::to_string(num_of_inds) + ") is larger than array dimension (" + std::to_string(shape_.size()) +
+            ")");
       }
     }
 
