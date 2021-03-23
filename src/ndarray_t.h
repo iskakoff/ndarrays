@@ -112,13 +112,19 @@ namespace ndarray {
 
     template<typename...Indices>
     const T *ref(Indices...inds) const {
+#ifndef NDEBUG
       size_t num_of_inds = sizeof...(Indices);
       check_dimensions(num_of_inds);
+#endif
       return &data_.get()[offset_ + get_index(inds...)];
     }
 
     template<typename...Indices>
     T *ref(Indices...inds) {
+#ifndef NDEBUG
+      size_t num_of_inds = sizeof...(Indices);
+      check_dimensions(num_of_inds);
+#endif
       return &data_.get()[offset_ + get_index(inds...)];
     }
 
@@ -138,6 +144,10 @@ namespace ndarray {
 
     template<typename...Indices>
     ndarray_t<T> operator()(Indices...inds) {
+#ifndef NDEBUG
+      size_t num_of_inds = sizeof...(Indices);
+      check_dimensions(num_of_inds);
+#endif
       ndarray_t<T> res(*this, inds...);
       return res;
     };
@@ -215,6 +225,14 @@ namespace ndarray {
 
     template<size_t D>
     std::vector<size_t> get_shape(const ndarray_t<T> &ref, const std::array<size_t, D> &inds) const {
+#ifndef NDEBUG
+      size_t num_of_inds = D;
+      ref.check_dimensions(num_of_inds);
+      for (size_t i = 0; i < inds.size(); ++i) {
+        if (inds[i] >= ref.shape_[i])
+          throw std::logic_error(std::to_string(i) + "-th index is larger than its dimension.");
+      }
+#endif
       std::vector<size_t> shape(ref.shape().size() - D, 0);
       std::copy(ref.shape_.data() + D, ref.shape_.data() + ref.shape_.size(), shape.data());
       return shape;
@@ -236,14 +254,14 @@ namespace ndarray {
      */
     void check_zero_dimension() const {
       if (shape_.size() != 0) {
-        throw std::runtime_error("Array is not directly castable to a scalar. Array dimension is " + std::to_string(shape_.size()));
+        throw std::runtime_error("Array is not directly castable to a scalar. Array's dimension is " + std::to_string(shape_.size()));
       }
     }
 
     void check_dimensions(size_t num_of_inds) const {
       if (num_of_inds > shape_.size()) {
         throw std::runtime_error(
-            "Number of indices (" + std::to_string(num_of_inds) + ") is larger than array dimension (" + std::to_string(shape_.size()) +
+            "Number of indices (" + std::to_string(num_of_inds) + ") is larger than array's dimension (" + std::to_string(shape_.size()) +
             ")");
       }
     }

@@ -82,3 +82,15 @@ TEST(NDArrayTest, Scalar) {
 }
 
 
+TEST(NDArrayTest, WrongDimensions) {
+  ndarray::ndarray_t<double> array(1, 2, 3, 4, 5);
+  initialize_array(array);
+  // throw if number of indices is larger than dimension
+  EXPECT_ANY_THROW(array(0, 0, 0, 0, 0, 0));
+  // throw if index value is larger than size of corresponding dimension
+  EXPECT_ANY_THROW(array(5, 5));
+  // the same for constructors
+  EXPECT_ANY_THROW(ndarray::ndarray_t<double>(array, 1, 2, 3, 4, 5));
+  EXPECT_ANY_THROW(ndarray::ndarray_t<double>(array, 0, 0, 0, 0, 0, 0));
+}
+
