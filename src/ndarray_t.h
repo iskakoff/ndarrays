@@ -31,6 +31,11 @@ namespace ndarray {
                                                   size_(get_size(dim)), offset_(0),
                                                   data_(new T[size_], std::default_delete<T[]>()) {}
 
+    ndarray_t(const std::vector<size_t> &dim) : shape_(dim.begin(), dim.end()),
+                                                strides_(get_strides(dim)),
+                                                size_(get_size(dim)), offset_(0),
+                                                data_(new T[size_], std::default_delete<T[]>()) {}
+
     /**
      * Constructor for slicing of existing instance.
      *
@@ -38,8 +43,8 @@ namespace ndarray {
      * @param[in] ref is existing instance for slicing.
      * @param[in] inds are indices for slicing.
      */
-    template<typename...Indices>
-    ndarray_t(ndarray_t<T> &ref, Indices...inds) : ndarray_t(ref, std::array<size_t, sizeof...(inds)>{{size_t(inds)...}}) {}
+    template<typename T2=typename std::remove_const<T>::type, typename...Indices>
+    ndarray_t(const ndarray_t<T2> &ref, Indices...inds) : ndarray_t(ref, std::array<size_t, sizeof...(inds)>{{size_t(inds)...}}) {}
 
     /**
      * Constructor for slicing of existing instance.
@@ -47,12 +52,24 @@ namespace ndarray {
      * @param[in] ref is existing instance for slicing.
      * @param[in] inds is array contains indices for slicing.
      */
-    template<size_t D>
-    ndarray_t(ndarray_t<T> &ref, const std::array<size_t, D> &inds) : shape_(get_shape(ref, inds)),
-                                                                      strides_(get_strides(shape_)),
-                                                                      size_(get_size(shape_)),
-                                                                      offset_(ref.offset_ + get_offset(ref.strides(), inds)),
-                                                                      data_(ref.data_) {}
+    template<typename T2=typename std::remove_const<T>::type, size_t D>
+    ndarray_t(const ndarray_t<T2> &ref, const std::array<size_t, D> &inds) : shape_(get_shape(ref.shape(), inds)),
+                                                                             strides_(get_strides(shape_)),
+                                                                             size_(get_size(shape_)),
+                                                                             offset_(ref.offset() + get_offset(ref.strides(), inds)),
+                                                                             data_(ref.data()) {}
+
+    ndarray_t(const ndarray_t<typename std::remove_const<T>::type> &rhs) : shape_(rhs.shape()),
+                                                                           strides_(rhs.strides()),
+                                                                           size_(rhs.size()),
+                                                                           offset_(rhs.offset()),
+                                                                           data_(rhs.data()) {}
+
+    ndarray_t(const ndarray_t<const typename std::remove_const<T>::type> &rhs) : shape_(rhs.shape()),
+                                                                                 strides_(rhs.strides()),
+                                                                                 size_(rhs.size()),
+                                                                                 offset_(rhs.offset()),
+                                                                                 data_(rhs.data()) {}
 
     /**
      * Conversion into scalar type
@@ -104,8 +121,16 @@ namespace ndarray {
     };
 
 
-    /// TODO: implement const slicing
-
+    /**
+     * Deep copy of array
+     *
+     * @return new array that is a full copy of current array
+     */
+    ndarray_t<typename std::remove_const<T>::type> copy() const {
+      ndarray_t<typename std::remove_const<T>::type> ret(shape_);
+      std::copy(data_.get(), data_.get() + size_, ret.data().get());
+      return ret;
+    }
 
     virtual ~ndarray_t() {
     }
@@ -146,7 +171,7 @@ namespace ndarray {
     ndarray_t<T> operator()(Indices...inds) {
 #ifndef NDEBUG
       size_t num_of_inds = sizeof...(Indices);
-      check_dimensions(num_of_inds);
+      check_dimensions(shape_, num_of_inds);
 #endif
       ndarray_t<T> res(*this, inds...);
       return res;
@@ -154,7 +179,12 @@ namespace ndarray {
 
     template<typename...Indices>
     ndarray_t<const typename std::remove_const<T>::type> operator()(Indices...inds) const {
-
+#ifndef NDEBUG
+      size_t num_of_inds = sizeof...(Indices);
+      check_dimensions(shape_, num_of_inds);
+#endif
+      ndarray_t<const typename std::remove_const<T>::type> res(*this, inds...);
+      return res;
     };
 
     // Data accessors
@@ -224,17 +254,17 @@ namespace ndarray {
     }
 
     template<size_t D>
-    std::vector<size_t> get_shape(const ndarray_t<T> &ref, const std::array<size_t, D> &inds) const {
+    std::vector<size_t> get_shape(const std::vector<size_t> &old_shape, const std::array<size_t, D> &inds) const {
 #ifndef NDEBUG
       size_t num_of_inds = D;
-      ref.check_dimensions(num_of_inds);
+      check_dimensions(old_shape, num_of_inds);
       for (size_t i = 0; i < inds.size(); ++i) {
-        if (inds[i] >= ref.shape_[i])
+        if (inds[i] >= old_shape[i])
           throw std::logic_error(std::to_string(i) + "-th index is larger than its dimension.");
       }
 #endif
-      std::vector<size_t> shape(ref.shape().size() - D, 0);
-      std::copy(ref.shape_.data() + D, ref.shape_.data() + ref.shape_.size(), shape.data());
+      std::vector<size_t> shape(old_shape.size() - D, 0);
+      std::copy(old_shape.data() + D, old_shape.data() + old_shape.size(), shape.data());
       return shape;
     }
 
@@ -249,6 +279,7 @@ namespace ndarray {
       return str;
     }
 
+  private:
     /**
      * Check that array is zero-dimension. Throw an exception if it's not.
      */
@@ -258,15 +289,13 @@ namespace ndarray {
       }
     }
 
-    void check_dimensions(size_t num_of_inds) const {
-      if (num_of_inds > shape_.size()) {
+    void check_dimensions(const std::vector<size_t> &shape, size_t num_of_inds) const {
+      if (num_of_inds > shape.size()) {
         throw std::runtime_error(
-            "Number of indices (" + std::to_string(num_of_inds) + ") is larger than array's dimension (" + std::to_string(shape_.size()) +
+            "Number of indices (" + std::to_string(num_of_inds) + ") is larger than array's dimension (" + std::to_string(shape.size()) +
             ")");
       }
     }
-
-
   };
 
 }
