@@ -9,13 +9,14 @@
 #include <ndarray_t.h>
 #include <complex>
 
-void initialize_array(ndarray::ndarray_t<double> &array) {
+template<typename T>
+void initialize_array(ndarray::ndarray_t<T> &array) {
   // Specify the engine and distribution.
   std::mt19937 mersenne_engine(1);  // Generates pseudo-random integers
   std::uniform_int_distribution<double> dist{0.0, 10.0};
 
-  std::generate(array.data().get(), array.data().get() + array.size(), [&dist, &mersenne_engine]() -> double {
-                  return dist(mersenne_engine);
+  std::generate(array.data().get(), array.data().get() + array.size(), [&dist, &mersenne_engine]() -> T {
+    return T(dist(mersenne_engine));
                 }
   );
 }
@@ -128,5 +129,31 @@ TEST(NDArrayTest, Copy) {
   ASSERT_FALSE(std::abs(double(arr1(0, 1, 2, 0, 0)) - double(arr3(0, 1, 2, 0, 0))) < 1e-9);
   ASSERT_FALSE(std::abs(double(arr1(0, 1, 2, 0, 0)) - double(arr4(0, 1, 2, 0, 0))) < 1e-9);
   ASSERT_FALSE(std::abs(double(arr1(0, 1, 2, 0, 0)) - double(arr5(0, 1, 2, 0, 0))) < 1e-9);
+}
+
+#include <ndarray_math.h>
+
+TEST(NDArrayTest, MathSum) {
+  ndarray::ndarray_t<double> arr1(1, 2, 3);
+  initialize_array(arr1);
+  ndarray::ndarray_t<double> arr2(1, 2, 3);
+  initialize_array(arr2);
+  ndarray::ndarray_t<double> arr3 = arr1 + arr2;
+  ASSERT_NEAR(double(arr1(0, 1, 2)
+                  +arr2(0, 1, 2)), arr3(0, 1, 2), 1e-12);
+}
+
+TEST(NDArrayTest, MathSumConversion) {
+  ndarray::ndarray_t<double> arr1(1, 2, 3);
+  initialize_array(arr1);
+  ndarray::ndarray_t<std::complex<double> > arr2(1, 2, 3);
+  initialize_array(arr2);
+  ndarray::ndarray_t<std::complex<double> > arr3 = arr1 + arr2;
+  std::complex<double> a1 = arr1(0, 1, 2);
+  std::complex<double> a2 = arr2(0, 1, 2);
+  std::complex<double> a3 = arr3(0, 1, 2);
+
+  std::complex<double> a12 = a1 + a2;
+  ASSERT_NEAR(a12.real(), a3.real(), 1e-12);
 }
 

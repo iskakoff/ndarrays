@@ -43,8 +43,9 @@ namespace ndarray {
      * @param[in] ref is existing instance for slicing.
      * @param[in] inds are indices for slicing.
      */
-    template<typename T2=typename std::remove_const<T>::type, typename...Indices>
-    ndarray_t(const ndarray_t<T2> &ref, Indices...inds) : ndarray_t(ref, std::array<size_t, sizeof...(inds)>{{size_t(inds)...}}) {}
+    template<typename T2=typename std::remove_const<T>::type, typename Indtype, typename...Indices>
+    ndarray_t(const ndarray_t<T2> &ref, Indtype d1, Indices...inds) : ndarray_t(ref, std::array<size_t, sizeof...(inds) + 1ul>{{size_t(
+        d1), size_t(inds)...}}) {}
 
     /**
      * Constructor for slicing of existing instance.
