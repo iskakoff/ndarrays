@@ -8,7 +8,7 @@
 
 namespace ndarray {
   template<typename T>
-  struct ndarray_t {
+  struct ndarray {
 
     /**
      * Constructor for initialization from dimensions (allocates memory for attribute data_).
@@ -18,7 +18,7 @@ namespace ndarray {
      * @param[in] inds are after first dimensions.
      */
     template<typename...Indices>
-    ndarray_t(size_t d1, Indices...inds) : ndarray_t(std::array<size_t, sizeof...(inds) + 1>{{d1, size_t(inds)...}}) {}
+    ndarray(size_t d1, Indices...inds) : ndarray(std::array<size_t, sizeof...(inds) + 1>{{d1, size_t(inds)...}}) {}
 
     /**
      * Constructor for initialization from array of dimensions (allocates memory for attribute data_).
@@ -26,15 +26,15 @@ namespace ndarray {
      * @param[in] dim is array while D is its dimension.
      */
     template<size_t D>
-    ndarray_t(const std::array<size_t, D> &dim) : shape_(dim.begin(), dim.end()),
-                                                  strides_(get_strides(dim)),
-                                                  size_(get_size(dim)), offset_(0),
-                                                  data_(new T[size_], std::default_delete<T[]>()) {}
-
-    ndarray_t(const std::vector<size_t> &dim) : shape_(dim.begin(), dim.end()),
+    ndarray(const std::array<size_t, D> &dim) : shape_(dim.begin(), dim.end()),
                                                 strides_(get_strides(dim)),
                                                 size_(get_size(dim)), offset_(0),
                                                 data_(new T[size_], std::default_delete<T[]>()) {}
+
+    ndarray(const std::vector<size_t> &dim) : shape_(dim.begin(), dim.end()),
+                                              strides_(get_strides(dim)),
+                                              size_(get_size(dim)), offset_(0),
+                                              data_(new T[size_], std::default_delete<T[]>()) {}
 
     /**
      * Constructor for slicing of existing instance.
@@ -44,7 +44,7 @@ namespace ndarray {
      * @param[in] inds are indices for slicing.
      */
     template<typename T2=typename std::remove_const<T>::type, typename Indtype, typename...Indices>
-    ndarray_t(const ndarray_t<T2> &ref, Indtype d1, Indices...inds) : ndarray_t(ref, std::array<size_t, sizeof...(inds) + 1ul>{{size_t(
+    ndarray(const ndarray<T2> &ref, Indtype d1, Indices...inds) : ndarray(ref, std::array<size_t, sizeof...(inds) + 1ul>{{size_t(
         d1), size_t(inds)...}}) {}
 
     /**
@@ -54,23 +54,23 @@ namespace ndarray {
      * @param[in] inds is array contains indices for slicing.
      */
     template<typename T2=typename std::remove_const<T>::type, size_t D>
-    ndarray_t(const ndarray_t<T2> &ref, const std::array<size_t, D> &inds) : shape_(get_shape(ref.shape(), inds)),
-                                                                             strides_(get_strides(shape_)),
-                                                                             size_(get_size(shape_)),
-                                                                             offset_(ref.offset() + get_offset(ref.strides(), inds)),
-                                                                             data_(ref.data()) {}
+    ndarray(const ndarray<T2> &ref, const std::array<size_t, D> &inds) : shape_(get_shape(ref.shape(), inds)),
+                                                                         strides_(get_strides(shape_)),
+                                                                         size_(get_size(shape_)),
+                                                                         offset_(ref.offset() + get_offset(ref.strides(), inds)),
+                                                                         data_(ref.data()) {}
 
-    ndarray_t(const ndarray_t<typename std::remove_const<T>::type> &rhs) : shape_(rhs.shape()),
-                                                                           strides_(rhs.strides()),
-                                                                           size_(rhs.size()),
-                                                                           offset_(rhs.offset()),
-                                                                           data_(rhs.data()) {}
+    ndarray(const ndarray<typename std::remove_const<T>::type> &rhs) : shape_(rhs.shape()),
+                                                                       strides_(rhs.strides()),
+                                                                       size_(rhs.size()),
+                                                                       offset_(rhs.offset()),
+                                                                       data_(rhs.data()) {}
 
-    ndarray_t(const ndarray_t<const typename std::remove_const<T>::type> &rhs) : shape_(rhs.shape()),
-                                                                                 strides_(rhs.strides()),
-                                                                                 size_(rhs.size()),
-                                                                                 offset_(rhs.offset()),
-                                                                                 data_(rhs.data()) {}
+    ndarray(const ndarray<const typename std::remove_const<T>::type> &rhs) : shape_(rhs.shape()),
+                                                                             strides_(rhs.strides()),
+                                                                             size_(rhs.size()),
+                                                                             offset_(rhs.offset()),
+                                                                             data_(rhs.data()) {}
 
     /**
      * Conversion into scalar type
@@ -113,7 +113,7 @@ namespace ndarray {
      * @return current tensor with updated value
      */
     template<typename Scalar, typename = typename std::enable_if<std::is_convertible<Scalar, T>::value>::type>
-    ndarray_t<T> &operator=(const Scalar rhs) {
+    ndarray<T> &operator=(const Scalar rhs) {
 #ifndef NDEBUG
       check_zero_dimension();
 #endif
@@ -127,13 +127,13 @@ namespace ndarray {
      *
      * @return new array that is a full copy of current array
      */
-    ndarray_t<typename std::remove_const<T>::type> copy() const {
-      ndarray_t<typename std::remove_const<T>::type> ret(shape_);
+    ndarray<typename std::remove_const<T>::type> copy() const {
+      ndarray<typename std::remove_const<T>::type> ret(shape_);
       std::copy(data_.get(), data_.get() + size_, ret.data().get());
       return ret;
     }
 
-    virtual ~ndarray_t() {
+    virtual ~ndarray() {
     }
 
     template<typename...Indices>
@@ -169,22 +169,22 @@ namespace ndarray {
      */
 
     template<typename...Indices>
-    ndarray_t<T> operator()(Indices...inds) {
+    ndarray<T> operator()(Indices...inds) {
 #ifndef NDEBUG
       size_t num_of_inds = sizeof...(Indices);
       check_dimensions(shape_, num_of_inds);
 #endif
-      ndarray_t<T> res(*this, inds...);
+      ndarray<T> res(*this, inds...);
       return res;
     };
 
     template<typename...Indices>
-    ndarray_t<const typename std::remove_const<T>::type> operator()(Indices...inds) const {
+    ndarray<const typename std::remove_const<T>::type> operator()(Indices...inds) const {
 #ifndef NDEBUG
       size_t num_of_inds = sizeof...(Indices);
       check_dimensions(shape_, num_of_inds);
 #endif
-      ndarray_t<const typename std::remove_const<T>::type> res(*this, inds...);
+      ndarray<const typename std::remove_const<T>::type> res(*this, inds...);
       return res;
     };
 
