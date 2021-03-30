@@ -133,27 +133,48 @@ TEST(NDArrayTest, Copy) {
 
 #include <ndarray_math.h>
 
-TEST(NDArrayTest, MathSum) {
-  ndarray::ndarray<double> arr1(1, 2, 3);
+TEST(NDArrayTest, MathAddSub) {
+  ndarray::ndarray<double> arr1(1, 2, 3, 4);
   initialize_array(arr1);
-  ndarray::ndarray<double> arr2(1, 2, 3);
+  ndarray::ndarray<double> arr2(1, 2, 3, 4);
   initialize_array(arr2);
   ndarray::ndarray<double> arr3 = arr1 + arr2;
-  ASSERT_NEAR(double(arr1(0, 1, 2)
-                  +arr2(0, 1, 2)), arr3(0, 1, 2), 1e-12);
+  ASSERT_NEAR(double(arr1(0, 1, 2, 0)
+                  +arr2(0, 1, 2, 0)), arr3(0, 1, 2, 0), 1e-12);
+  ndarray::ndarray<double> arr4 = arr1.copy();
+  arr1 += arr2;
+  ASSERT_NEAR(arr1(0, 1, 2, 0), arr3(0, 1, 2, 0), 1e-12);
+  arr1 -= arr2;
+  ASSERT_NEAR(arr1(0, 1, 0, 2), arr4(0, 1, 0, 2), 1e-12);
 }
 
-TEST(NDArrayTest, MathSumConversion) {
-  ndarray::ndarray<double> arr1(1, 2, 3);
+TEST(NDArrayTest, MathAddSubConversion) {
+  ndarray::ndarray<double> arr1(1, 2, 3, 4);
   initialize_array(arr1);
-  ndarray::ndarray<std::complex<double> > arr2(1, 2, 3);
+  ndarray::ndarray<std::complex<double> > arr2(1, 2, 3, 4);
   initialize_array(arr2);
   ndarray::ndarray<std::complex<double> > arr3 = arr1 + arr2;
-  std::complex<double> a1 = arr1(0, 1, 2);
-  std::complex<double> a2 = arr2(0, 1, 2);
-  std::complex<double> a3 = arr3(0, 1, 2);
+  ndarray::ndarray<std::complex<double> > arr4 = arr3 - arr1;
+  std::complex<double> a1 = arr1(0, 1, 0, 2);
+  std::complex<double> a2 = arr2(0, 1, 0, 2);
+  std::complex<double> a3 = arr3(0, 1, 0, 2);
+  std::complex<double> a4 = arr4(0, 1, 0, 2);
 
   std::complex<double> a12 = a1 + a2;
   ASSERT_NEAR(a12.real(), a3.real(), 1e-12);
+  ASSERT_NEAR(a2.real(), a4.real(), 1e-12);
 }
 
+
+TEST(NDArrayTest, MathScalarAddSub) {
+  ndarray::ndarray<double> arr1(1, 2, 3, 4);
+  initialize_array(arr1);
+  double shift = 15.0;
+  ndarray::ndarray<double> arr2 = arr1 + shift;
+  ASSERT_NEAR(arr1(0, 1, 2, 2) + 15.0, arr2(0, 1, 2, 2), 1e-12);
+  ndarray::ndarray<double> arr3 = arr2 - shift;
+  ASSERT_NEAR(arr1(0, 1, 2, 0), arr3(0, 1, 2, 0), 1e-12);
+  ndarray::ndarray<double> arr4 = shift + arr1;
+  ASSERT_NEAR(arr4(0, 1, 0, 2), arr2(0, 1, 0, 2), 1e-12);
+
+}

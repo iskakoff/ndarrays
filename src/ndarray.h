@@ -2,13 +2,25 @@
 
 #include <algorithm>
 #include <array>
+#include <complex>
 #include <numeric>
 #include <string>
 #include <vector>
 
 namespace ndarray {
+
+  template<typename T>
+  struct is_complex : std::false_type {
+  };
+  template<typename T>
+  struct is_complex<std::complex<T>> : std::true_type {
+  };
+  template<typename T>
+  using is_scalar = std::integral_constant<bool, std::is_arithmetic<T>::value
+                                                 || is_complex<T>::value>;
   template<typename T>
   struct ndarray {
+    static_assert(is_scalar<T>::value, "");
 
     /**
      * Constructor for initialization from dimensions (allocates memory for attribute data_).
@@ -29,12 +41,16 @@ namespace ndarray {
     ndarray(const std::array<size_t, D> &dim) : shape_(dim.begin(), dim.end()),
                                                 strides_(get_strides(dim)),
                                                 size_(get_size(dim)), offset_(0),
-                                                data_(new T[size_], std::default_delete<T[]>()) {}
+                                                data_(new T[size_], std::default_delete<T[]>()) {
+      set_value(0.0);
+    }
 
     ndarray(const std::vector<size_t> &dim) : shape_(dim.begin(), dim.end()),
                                               strides_(get_strides(dim)),
                                               size_(get_size(dim)), offset_(0),
-                                              data_(new T[size_], std::default_delete<T[]>()) {}
+                                              data_(new T[size_], std::default_delete<T[]>()) {
+      set_value(0.0);
+    }
 
     /**
      * Constructor for slicing of existing instance.
@@ -60,17 +76,19 @@ namespace ndarray {
                                                                          offset_(ref.offset() + get_offset(ref.strides(), inds)),
                                                                          data_(ref.data()) {}
 
-    ndarray(const ndarray<typename std::remove_const<T>::type> &rhs) : shape_(rhs.shape()),
-                                                                       strides_(rhs.strides()),
-                                                                       size_(rhs.size()),
-                                                                       offset_(rhs.offset()),
-                                                                       data_(rhs.data()) {}
+    template<typename T2=typename std::remove_const<T>::type>
+    ndarray(const ndarray<T2> &rhs) : shape_(rhs.shape()),
+                                      strides_(rhs.strides()),
+                                      size_(rhs.size()),
+                                      offset_(rhs.offset()),
+                                      data_(rhs.data()) {}
 
-    ndarray(const ndarray<const typename std::remove_const<T>::type> &rhs) : shape_(rhs.shape()),
-                                                                             strides_(rhs.strides()),
-                                                                             size_(rhs.size()),
-                                                                             offset_(rhs.offset()),
-                                                                             data_(rhs.data()) {}
+    template<typename T2=typename std::remove_const<T>::type>
+    ndarray(const ndarray<const T2> &rhs) : shape_(rhs.shape()),
+                                            strides_(rhs.strides()),
+                                            size_(rhs.size()),
+                                            offset_(rhs.offset()),
+                                            data_(rhs.data()) {}
 
     /**
      * Conversion into scalar type
@@ -78,7 +96,7 @@ namespace ndarray {
      * @tparam Scalar type of LHS argument
      * @return value of zero-dimension tensor
      */
-    template<typename Scalar, typename = typename std::enable_if<std::is_convertible<T, Scalar>::value>::type>
+    template<typename Scalar, typename = typename std::enable_if<is_scalar<Scalar>::value && std::is_convertible<T, Scalar>::value>::type>
     operator Scalar() const {
 #ifndef NDEBUG
       check_zero_dimension();
@@ -112,7 +130,7 @@ namespace ndarray {
      * @param rhs     - value of a scalar
      * @return current tensor with updated value
      */
-    template<typename Scalar, typename = typename std::enable_if<std::is_convertible<Scalar, T>::value>::type>
+    template<typename Scalar, typename = typename std::enable_if<is_scalar<Scalar>::value>::type>
     ndarray<T> &operator=(const Scalar rhs) {
 #ifndef NDEBUG
       check_zero_dimension();
@@ -155,7 +173,7 @@ namespace ndarray {
     }
 
     void set_zero() {
-      std::fill(data_, data_.get() + size_, 0);
+      std::fill(data_.get() + offset_, data_.get() + offset_ + size_, 0);
     }
 
 
@@ -296,6 +314,11 @@ namespace ndarray {
             "Number of indices (" + std::to_string(num_of_inds) + ") is larger than array's dimension (" + std::to_string(shape.size()) +
             ")");
       }
+    }
+
+    template<typename T2>
+    typename std::enable_if<is_scalar<T2>::value && std::is_convertible<T2, T>::value>::type set_value(T2 value) {
+      std::fill(data_.get() + offset_, data_.get() + offset_ + size_, T(0));
     }
   };
 
