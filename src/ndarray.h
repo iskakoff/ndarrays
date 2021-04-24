@@ -61,9 +61,8 @@ namespace ndarray {
      * @param[in] inds are indices for slicing.
      */
     template<typename T2=typename std::remove_const<T>::type, typename Indtype, typename...Indices>
-    ndarray(const ndarray<T2> &ref, Indtype d1, Indices...inds) : ndarray(ref, std::array<size_t,
-        sizeof...(inds) + 1ul>{{size_t(
-        d1), size_t(inds)...}}) {}
+    ndarray(const ndarray<T2> &ref, Indtype d1, Indices...inds) :
+        ndarray(ref, std::array<size_t, sizeof...(inds) + 1ul>{{size_t(d1), size_t(inds)...}}) {}
 
     /**
      * Constructor for slicing of existing instance.
@@ -210,6 +209,15 @@ namespace ndarray {
       set_value(0);
     }
 
+    void reshape(const std::vector<size_t> &shape) {
+#ifndef NDEBUG
+      if (get_size(shape) != size_)
+        throw std::logic_error("new shape is not consistent with old one");
+#endif
+      shape_ = shape;
+      strides_ = get_strides(shape_);
+    }
+
     // Data accessors
 
     const std::shared_ptr<T> &data() const {
@@ -316,10 +324,9 @@ namespace ndarray {
 
     void check_dimensions(const std::vector<size_t> &shape, size_t num_of_inds) const {
       if (num_of_inds > shape.size()) {
-        throw std::runtime_error(
-            "Number of indices (" + std::to_string(num_of_inds) + ") is larger than array's dimension (" +
-            std::to_string(shape.size()) +
-            ")");
+        throw std::runtime_error("Number of indices (" +
+                                 std::to_string(num_of_inds) + ") is larger than array's dimension (" +
+                                 std::to_string(shape.size()) + ")");
       }
     }
   };

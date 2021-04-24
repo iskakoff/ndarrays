@@ -131,6 +131,16 @@ TEST(NDArrayTest, Copy) {
   ASSERT_FALSE(std::abs(double(arr1(0, 1, 2, 0, 0)) - double(arr5(0, 1, 2, 0, 0))) < 1e-9);
 }
 
+TEST(NDArrayTest, Reshape) {
+  ndarray::ndarray<double> array(1, 2, 3, 4, 5);
+  initialize_array(array);
+  std::vector<size_t> shape{1, 2, 30, 2};
+  std::vector<size_t> strides{120, 60, 2, 1};
+  array.reshape(shape);
+  ASSERT_EQ(array.shape(), shape);
+  ASSERT_EQ(array.strides(), strides);
+}
+
 #include <ndarray_math.h>
 
 TEST(NDArrayTest, MathAddSub) {
