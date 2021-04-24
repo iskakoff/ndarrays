@@ -91,7 +91,8 @@ namespace ndarray{
   template<typename T1, typename T2>
   typename std::enable_if<is_scalar<T2>::value, ndarray < decltype(T1{} + T2{})> >
 
-  ::type operator+(const ndarray <T1> &first, T2 second) {
+  ::type
+  operator+(const ndarray <T1> &first, T2 second) {
     using result_t = decltype(T1{} + T2{});
     ndarray<result_t> result(first.shape());
     std::transform(first.data().get() + first.offset(), first.data().get() + first.offset() + first.size(),
