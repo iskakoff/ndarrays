@@ -3,12 +3,12 @@
  *
  */
 
-#ifndef TENSORS_NDARRAY_MATH_H
-#define TENSORS_NDARRAY_MATH_H
+#ifndef ALPS_NDARRAY_MATH_H
+#define ALPS_NDARRAY_MATH_H
 
 #include "ndarray.h"
 
-namespace ndarray{
+namespace ndarray {
 
   // Arithmetic operations on tensors
 
@@ -52,7 +52,7 @@ namespace ndarray{
 
   // Binary operations with tensors
   template<typename T1, typename T2>
-  ndarray<decltype(T1{} + T2{})> operator+(const ndarray<T1> &first, const ndarray<T2> &second) {
+  ndarray<decltype(T1{} + T2{})> operator+(const ndarray <T1> &first, const ndarray <T2> &second) {
     using result_t = decltype(T1{} + T2{});
 #ifndef NDEBUG
     if (!std::equal(first.shape().begin(), first.shape().end(), second.shape().begin())) {
@@ -132,4 +132,4 @@ namespace ndarray{
 }
 
 
-#endif //TENSORS_NDARRAY_MATH_H
+#endif // ALPS_NDARRAY_MATH_H

@@ -18,6 +18,7 @@ namespace ndarray {
   template<typename T>
   using is_scalar = std::integral_constant<bool, std::is_arithmetic<T>::value
                                                  || is_complex<T>::value>;
+
   template<typename T>
   struct ndarray {
     static_assert(is_scalar<T>::value, "");
@@ -30,7 +31,8 @@ namespace ndarray {
      * @param[in] inds are after first dimensions.
      */
     template<typename...Indices>
-    ndarray(size_t d1, Indices...inds) : ndarray(std::array<size_t, sizeof...(inds) + 1>{{d1, size_t(inds)...}}) {}
+    ndarray(size_t d1, Indices...inds) : ndarray(
+        std::array<size_t, sizeof...(inds) + 1>{{d1, size_t(inds)...}}) {}
 
     /**
      * Constructor for initialization from array of dimensions (allocates memory for attribute data_).
@@ -60,7 +62,8 @@ namespace ndarray {
      * @param[in] inds are indices for slicing.
      */
     template<typename T2=typename std::remove_const<T>::type, typename Indtype, typename...Indices>
-    ndarray(const ndarray<T2> &ref, Indtype d1, Indices...inds) : ndarray(ref, std::array<size_t, sizeof...(inds) + 1ul>{{size_t(
+    ndarray(const ndarray<T2> &ref, Indtype d1, Indices...inds) : ndarray(ref, std::array<size_t,
+        sizeof...(inds) + 1ul>{{size_t(
         d1), size_t(inds)...}}) {}
 
     /**
@@ -73,7 +76,9 @@ namespace ndarray {
     ndarray(const ndarray<T2> &ref, const std::array<size_t, D> &inds) : shape_(get_shape(ref.shape(), inds)),
                                                                          strides_(get_strides(shape_)),
                                                                          size_(get_size(shape_)),
-                                                                         offset_(ref.offset() + get_offset(ref.strides(), inds)),
+                                                                         offset_(ref.offset() +
+                                                                                 get_offset(ref.strides(),
+                                                                                            inds)),
                                                                          data_(ref.data()) {}
 
     template<typename T2=typename std::remove_const<T>::type>
@@ -96,7 +101,8 @@ namespace ndarray {
      * @tparam Scalar type of LHS argument
      * @return value of zero-dimension tensor
      */
-    template<typename Scalar, typename = typename std::enable_if<is_scalar<Scalar>::value && std::is_convertible<T, Scalar>::value>::type>
+    template<typename Scalar, typename = typename std::enable_if<
+        is_scalar<Scalar>::value && std::is_convertible<T, Scalar>::value>::type>
     operator Scalar() const {
 #ifndef NDEBUG
       check_zero_dimension();
@@ -257,7 +263,8 @@ namespace ndarray {
           throw std::logic_error(std::to_string(i) + "-th index is larger than its dimension.");
       }
 #endif
-      std::transform(ind_arr.begin(), ind_arr.end(), strides_.begin(), ind_arr.begin(), std::multiplies<size_t>());
+      std::transform(ind_arr.begin(), ind_arr.end(), strides_.begin(), ind_arr.begin(),
+                     std::multiplies<size_t>());
       size_t ind = std::accumulate(ind_arr.begin(), ind_arr.end(), size_t(0), std::plus<size_t>());
       return ind;
     }
@@ -273,7 +280,8 @@ namespace ndarray {
     }
 
     template<size_t D>
-    std::vector<size_t> get_shape(const std::vector<size_t> &old_shape, const std::array<size_t, D> &inds) const {
+    std::vector<size_t>
+    get_shape(const std::vector<size_t> &old_shape, const std::array<size_t, D> &inds) const {
 #ifndef NDEBUG
       size_t num_of_inds = D;
       check_dimensions(old_shape, num_of_inds);
@@ -304,20 +312,23 @@ namespace ndarray {
      */
     void check_zero_dimension() const {
       if (shape_.size() != 0) {
-        throw std::runtime_error("Array is not directly castable to a scalar. Array's dimension is " + std::to_string(shape_.size()));
+        throw std::runtime_error("Array is not directly castable to a scalar. Array's dimension is " +
+                                 std::to_string(shape_.size()));
       }
     }
 
     void check_dimensions(const std::vector<size_t> &shape, size_t num_of_inds) const {
       if (num_of_inds > shape.size()) {
         throw std::runtime_error(
-            "Number of indices (" + std::to_string(num_of_inds) + ") is larger than array's dimension (" + std::to_string(shape.size()) +
+            "Number of indices (" + std::to_string(num_of_inds) + ") is larger than array's dimension (" +
+            std::to_string(shape.size()) +
             ")");
       }
     }
 
     template<typename T2>
-    typename std::enable_if<is_scalar<T2>::value && std::is_convertible<T2, T>::value>::type set_value(T2 value) {
+    typename std::enable_if<is_scalar<T2>::value && std::is_convertible<T2, T>::value>::type
+    set_value(T2 value) {
       std::fill(data_.get() + offset_, data_.get() + offset_ + size_, T(0));
     }
   };

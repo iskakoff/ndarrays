@@ -51,8 +51,9 @@ namespace alps {
     /**
      * Copy constructor
      */
-    storage(const storage &rhs) : _size(rhs._size), _total_size(rhs._total_size), _offset(rhs._offset), _data(rhs._data) {
-      std::cout<<"cpy storage"<<std::endl;
+    storage(const storage &rhs) : _size(rhs._size), _total_size(rhs._total_size), _offset(rhs._offset),
+                                  _data(rhs._data) {
+      std::cout << "cpy storage" << std::endl;
     }
 
     /**
@@ -64,11 +65,12 @@ namespace alps {
                              _data(std::shared_ptr<unsigned char>(new unsigned char[rhs._size],
                                                                   std::default_delete<unsigned char[]>())) {
       std::copy_n(rhs._data.get() + rhs._offset, _size, _data.get());
-      std::cout<<"mv storage"<<std::endl;
+      std::cout << "mv storage" << std::endl;
     }
 
-    storage& operator=(storage && rhs) = delete;
-    storage& operator=(const storage & rhs) = delete;
+    storage &operator=(storage &&rhs) = delete;
+
+    storage &operator=(const storage &rhs) = delete;
 
     /**
      * Create view/copy storage of the `rhs`
@@ -77,13 +79,16 @@ namespace alps {
      * @param offset - offset from the beggining of the rhs
      * @param copy   - create deep copy or view
      */
-    storage(const storage &rhs, int64_t size, int64_t offset, bool copy = false) : _size(size), _total_size(0),
-                                                                     _offset(rhs._offset + offset) {
+    storage(const storage &rhs, int64_t size, int64_t offset, bool copy = false) : _size(size),
+                                                                                   _total_size(0),
+                                                                                   _offset(
+                                                                                       rhs._offset + offset) {
       if (!copy) {
         _data = rhs._data;
         _total_size = rhs._total_size;
       } else {
-        _data = std::shared_ptr<unsigned char>(new unsigned char[_size], std::default_delete<unsigned char[]>());
+        _data = std::shared_ptr<unsigned char>(new unsigned char[_size],
+                                               std::default_delete<unsigned char[]>());
         std::copy_n(rhs._data.get() + rhs._offset, _size, _data.get());
         _total_size = _size;
       }
@@ -130,7 +135,8 @@ namespace alps {
   struct tensor_index {
 
     template<typename...Indices>
-    tensor_index(int64_t x, Indices...xxx) : tensor_index(std::array<int64_t, sizeof...(xxx)+1>{x, int64_t(xxx)...}) {}
+    tensor_index(int64_t x, Indices...xxx) : tensor_index(
+        std::array<int64_t, sizeof...(xxx) + 1>{x, int64_t(xxx)...}) {}
 
     template<size_t D>
     tensor_index(const std::array<int64_t, D> &xxx) : indices(xxx.begin(), xxx.end()) {}
@@ -164,57 +170,69 @@ namespace alps {
   class tensor {
   public:
 
-    explicit tensor(int64_t size1) : tensor<T>(std::array<int64_t, 1>{{size1}}) {std::cout<<"const 1"<<std::endl;}
-
-    tensor(const tensor<T>& rhs) : _dim(rhs._dim), _shape(rhs._strides), _strides(rhs._strides), _storage(rhs._storage) {
-      std::cout<<"copy\n";
+    explicit tensor(int64_t size1) : tensor<T>(std::array<int64_t, 1>{{size1}}) {
+      std::cout << "const 1" << std::endl;
     }
 
-    tensor(tensor<T>&& rhs) = default;
+    tensor(const tensor<T> &rhs) : _dim(rhs._dim), _shape(rhs._strides), _strides(rhs._strides),
+                                   _storage(rhs._storage) {
+      std::cout << "copy\n";
+    }
+
+    tensor(tensor<T> &&rhs) = default;
     //: _dim(rhs._dim), _shape(rhs._strides), _strides(rhs._strides), _storage(rhs._storage) {
-     // std::cout<<"move\n";
+    // std::cout<<"move\n";
     // }
 
-    tensor<T> & operator=(const tensor<T>& rhs){
-      std::cout<<"copy\n";
+    tensor<T> &operator=(const tensor<T> &rhs) {
+      std::cout << "copy\n";
       return *this;
     }
-    tensor<T> & operator=(tensor<T>&& rhs) {
-      std::cout<<"move\n";
+
+    tensor<T> &operator=(tensor<T> &&rhs) {
+      std::cout << "move\n";
       return *this;
     }
 
 
     template<typename...Indices>
-    explicit tensor(typename std::enable_if<all_true<std::is_convertible<Indices, std::int64_t>::value...>::value, int64_t>::type size1,
-           Indices...sizes) : tensor<T>(std::array<int64_t, sizeof...(Indices) + 1>{{size1, int64_t(sizes)...}}) {std::cout<<"const 2"<<std::endl;}
+    explicit tensor(
+        typename std::enable_if<all_true<std::is_convertible<Indices, std::int64_t>::value...>::value, int64_t>::type size1,
+        Indices...sizes) : tensor<T>(
+        std::array<int64_t, sizeof...(Indices) + 1>{{size1, int64_t(sizes)...}}) {
+      std::cout << "const 2" << std::endl;
+    }
 
     template<size_t D>
-    tensor(const std::array<int64_t, D> &shape) : _dim(D), _shape(shape.begin(), shape.end()), _strides(get_strides(shape)),
+    tensor(const std::array<int64_t, D> &shape) : _dim(D), _shape(shape.begin(), shape.end()),
+                                                  _strides(get_strides(shape)),
                                                   _storage(sizeof(T) * size(shape)) {
-      std::cout<<"const 3"<<std::endl;
+      std::cout << "const 3" << std::endl;
     }
 
 
     template<typename...Indices>
     tensor(const storage &rhs_storage, int64_t offset,
-           Indices ...dims) : tensor(rhs_storage, offset, std::array<int64_t, sizeof...(Indices)>{{int64_t(dims)...}}) {
-      std::cout<<"const 4"<<std::endl;
+           Indices ...dims) : tensor(rhs_storage, offset,
+                                     std::array<int64_t, sizeof...(Indices)>{{int64_t(dims)...}}) {
+      std::cout << "const 4" << std::endl;
     }
 
     template<size_t D>
     tensor(const storage &rhs_storage, int64_t offset,
            const std::array<int64_t, D> &new_shape) : _dim(D), _shape(new_shape.begin(), new_shape.end()),
-                                                                 _strides(get_strides(new_shape)),
-                                                                 _storage(rhs_storage, size(new_shape)*sizeof(T), offset*sizeof(T)) {
-      std::cout<<"const 5"<<std::endl;
+                                                      _strides(get_strides(new_shape)),
+                                                      _storage(rhs_storage, size(new_shape) * sizeof(T),
+                                                               offset * sizeof(T)) {
+      std::cout << "const 5" << std::endl;
     }
 
     tensor(const storage &rhs_storage, int64_t offset,
            const std::vector<int64_t> &new_shape) : _dim(new_shape.size()), _shape(new_shape),
-                                                      _strides(get_strides(new_shape)),
-                                                      _storage(rhs_storage, size(new_shape)*sizeof(T), offset*sizeof(T)) {
-      std::cout<<"const 6"<<std::endl;
+                                                    _strides(get_strides(new_shape)),
+                                                    _storage(rhs_storage, size(new_shape) * sizeof(T),
+                                                             offset * sizeof(T)) {
+      std::cout << "const 6" << std::endl;
     }
 
 
@@ -256,7 +274,7 @@ namespace alps {
       }
 
       size_t idx = index(t1, size_t(indices)...);
-      assert(idx*sizeof(T) < _storage.size() );
+      assert(idx * sizeof(T) < _storage.size());
       return _storage.data<T>()[idx];
     }
 

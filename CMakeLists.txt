@@ -11,6 +11,6 @@ include_directories(src)
 add_subdirectory(src)
 
 option(TESTING "Enable testing" ON)
-if(TESTING)
+if (TESTING)
     add_subdirectory(test)
-endif(TESTING)
+endif (TESTING)
