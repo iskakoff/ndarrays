@@ -16,8 +16,7 @@ namespace ndarray {
   struct is_complex<std::complex<T>> : std::true_type {
   };
   template<typename T>
-  using is_scalar = std::integral_constant<bool, std::is_arithmetic<T>::value
-                                                 || is_complex<T>::value>;
+  using is_scalar = std::integral_constant<bool, std::is_arithmetic<T>::value || is_complex<T>::value>;
 
   template<typename T>
   struct ndarray {
@@ -73,13 +72,12 @@ namespace ndarray {
      * @param[in] inds is array contains indices for slicing.
      */
     template<typename T2=typename std::remove_const<T>::type, size_t D>
-    ndarray(const ndarray<T2> &ref, const std::array<size_t, D> &inds) : shape_(get_shape(ref.shape(), inds)),
-                                                                         strides_(get_strides(shape_)),
-                                                                         size_(get_size(shape_)),
-                                                                         offset_(ref.offset() +
-                                                                                 get_offset(ref.strides(),
-                                                                                            inds)),
-                                                                         data_(ref.data()) {}
+    ndarray(const ndarray<T2> &ref, const std::array<size_t, D> &inds) :
+        shape_(get_shape(ref.shape(), inds)),
+        strides_(get_strides(shape_)),
+        size_(get_size(shape_)),
+        offset_(ref.offset() + get_offset(ref.strides(), inds)),
+        data_(ref.data()) {}
 
     template<typename T2=typename std::remove_const<T>::type>
     ndarray(const ndarray<T2> &rhs) : shape_(rhs.shape()),
@@ -178,20 +176,9 @@ namespace ndarray {
       return &data_.get()[offset_ + get_index(inds...)];
     }
 
-    void set_zero() {
-      std::fill(data_.get() + offset_, data_.get() + offset_ + size_, 0);
-    }
-
-
-    /**
-     * TODO:
-     *
-     * operator() (indices...inds)
-     *    - return ndarray with new shape to be shape[sizeof...(indices):] if sizeof...(indices) < shape or 0
-     *    - implicit conversion between scalar types and ndarray
-     *
-     */
-
+    /// TODO: write comments
+    // - return ndarray with new shape to be shape[sizeof...(indices):] if sizeof...(indices) < shape or 0
+    // - implicit conversion between scalar types and ndarray
     template<typename...Indices>
     ndarray<T> operator()(Indices...inds) {
 #ifndef NDEBUG
@@ -211,6 +198,17 @@ namespace ndarray {
       ndarray<const typename std::remove_const<T>::type> res(*this, inds...);
       return res;
     };
+
+    // ToDo make test
+    template<typename T2>
+    typename std::enable_if<is_scalar<T2>::value && std::is_convertible<T2, T>::value>::type
+    set_value(T2 value) {
+      std::fill(data_.get() + offset_, data_.get() + offset_ + size_, T(value));
+    }
+
+    void set_zero() {
+      set_value(0);
+    }
 
     // Data accessors
 
@@ -306,7 +304,6 @@ namespace ndarray {
       return str;
     }
 
-  private:
     /**
      * Check that array is zero-dimension. Throw an exception if it's not.
      */
@@ -325,12 +322,5 @@ namespace ndarray {
             ")");
       }
     }
-
-    template<typename T2>
-    typename std::enable_if<is_scalar<T2>::value && std::is_convertible<T2, T>::value>::type
-    set_value(T2 value) {
-      std::fill(data_.get() + offset_, data_.get() + offset_ + size_, T(0));
-    }
   };
-
 }
