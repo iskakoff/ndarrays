@@ -16,7 +16,7 @@ void initialize_array(ndarray::ndarray<T> &array) {
   std::uniform_int_distribution<double> dist{0.0, 10.0};
 
   std::generate(array.data().get(), array.data().get() + array.size(), [&dist, &mersenne_engine]() -> T {
-    return T(dist(mersenne_engine));
+                  return T(dist(mersenne_engine));
                 }
   );
 }
