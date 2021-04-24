@@ -36,20 +36,20 @@ namespace ndarray {
     /**
      * Constructor for initialization from array of dimensions (allocates memory for attribute data_).
      *
-     * @param[in] dim is array while D is its dimension.
+     * @param[in] shape is array while D is its dimension.
      */
     template<size_t D>
-    ndarray(const std::array<size_t, D> &dim) : shape_(dim.begin(), dim.end()),
-                                                strides_(get_strides(dim)),
-                                                size_(get_size(dim)), offset_(0),
-                                                data_(new T[size_], std::default_delete<T[]>()) {
+    ndarray(const std::array<size_t, D> &shape) : shape_(shape.begin(), shape.end()),
+                                                  strides_(get_strides(shape)),
+                                                  size_(get_size(shape)), offset_(0),
+                                                  data_(new T[size_], std::default_delete<T[]>()) {
       set_value(0.0);
     }
 
-    ndarray(const std::vector<size_t> &dim) : shape_(dim.begin(), dim.end()),
-                                              strides_(get_strides(dim)),
-                                              size_(get_size(dim)), offset_(0),
-                                              data_(new T[size_], std::default_delete<T[]>()) {
+    ndarray(const std::vector<size_t> &shape) : shape_(shape.begin(), shape.end()),
+                                                strides_(get_strides(shape)),
+                                                size_(get_size(shape)), offset_(0),
+                                                data_(new T[size_], std::default_delete<T[]>()) {
       set_value(0.0);
     }
 
@@ -209,13 +209,19 @@ namespace ndarray {
       set_value(0);
     }
 
-    void reshape(const std::vector<size_t> &shape) {
+    ndarray<T> reshape(const std::vector<size_t> &shape) const {
+      ndarray<T> result(*this);
+      return result.inplace_reshape(shape);
+    }
+
+    ndarray<T> inplace_reshape(const std::vector<size_t> &shape) {
 #ifndef NDEBUG
       if (get_size(shape) != size_)
         throw std::logic_error("new shape is not consistent with old one");
 #endif
       shape_ = shape;
-      strides_ = get_strides(shape_);
+      strides_ = get_strides(shape);
+      return *this;
     }
 
     // Data accessors

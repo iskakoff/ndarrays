@@ -136,9 +136,9 @@ TEST(NDArrayTest, Reshape) {
   initialize_array(array);
   std::vector<size_t> shape{1, 2, 30, 2};
   std::vector<size_t> strides{120, 60, 2, 1};
-  array.reshape(shape);
-  ASSERT_EQ(array.shape(), shape);
-  ASSERT_EQ(array.strides(), strides);
+  ndarray::ndarray<double> reshaped_array = array.reshape(shape);
+  ASSERT_EQ(reshaped_array.shape(), shape);
+  ASSERT_EQ(reshaped_array.strides(), strides);
 }
 
 #include <ndarray_math.h>
