@@ -6,6 +6,7 @@
 #include <numeric>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace ndarray {
 
@@ -224,6 +225,39 @@ namespace ndarray {
       return *this;
     }
 
+    ndarray<T> transpose(const std::string &string_pattern) const {
+      size_t find = string_pattern.find("->");
+      if (find == std::string::npos) {
+        throw std::runtime_error("Incorrect transpose pattern.");
+      }
+      std::string from = string_pattern.substr(0, find);
+      std::string to = string_pattern.substr(find + 2, string_pattern.size() - 1);
+      if (from.length() != to.length()) {
+        throw std::runtime_error("Transpose source and target indices have different size.");
+      }
+      if (from.length() != dim()) {
+        throw std::runtime_error("Number of transpose indices and array dimension are different size.");
+      }
+      /*
+       * TODO:
+       * 1. check that all indices of input are in the output indices - throw exception if not
+       * 2. remove leading and trailing spaces from indices - possible option do regular expression
+       * 3. check that all indices are Latin letters - possible option do regular expression
+       * 4. Add tests for 1-3.
+       *
+       */
+
+      std::map<char, size_t> index_map;
+      for (size_t i = 0; i < to.length(); ++i) {
+        index_map[to[i]] = i;
+      }
+      std::vector<size_t> pattern(to.length());
+      for (size_t j = 0; j < from.length(); ++j) {
+        pattern[j] = index_map[from[j]];
+      }
+      return transpose_inner(pattern);
+    }
+
     // Data accessors
 
     const std::shared_ptr<T> &data() const {
@@ -334,6 +368,27 @@ namespace ndarray {
                                  std::to_string(num_of_inds) + ") is larger than array's dimension (" +
                                  std::to_string(shape.size()) + ")");
       }
+    }
+
+    ndarray<T> transpose_inner(const std::vector<size_t> &pattern) const {
+      std::vector<size_t> shape(shape_.size());
+      for (size_t i(0); i < shape_.size(); ++i) {
+        shape[pattern[i]] = shape_[i];
+      }
+      ndarray<T> result(shape);
+      std::vector<size_t> indices(dim(), 0);
+      for (size_t i(0); i < size_; ++i) {
+        size_t res = i;
+        for (size_t ind(0); ind < dim(); ++ind) {
+          indices[pattern[dim() - ind - 1]] = res % shape_[dim() - ind - 1];
+          res /= shape_[dim() - ind - 1];
+        }
+        std::transform(indices.begin(), indices.end(), result.strides_.begin(), indices.begin(),
+                       std::multiplies<size_t>());
+        size_t ind = std::accumulate(indices.begin(), indices.end(), size_t(0), std::plus<size_t>());
+        result.data_.get()[ind] = data_.get()[offset_ + i];
+      }
+      return result;
     }
   };
 }

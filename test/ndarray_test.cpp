@@ -141,6 +141,24 @@ TEST(NDArrayTest, Reshape) {
   ASSERT_EQ(reshaped_array.strides(), strides);
 }
 
+TEST(NDArrayTest, Transpose) {
+  ndarray::ndarray<double> array(1, 2, 3, 4);
+  initialize_array(array);
+  ASSERT_THROW(array.transpose("ijkl->ikl"), std::runtime_error);
+  ASSERT_THROW(array.transpose("ijk->ikj"), std::runtime_error);
+  ndarray::ndarray<double> result = array.transpose("ijkl->ikjl");
+  for (int i = 0; i < 1; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      for (int k = 0; k < 3; ++k) {
+        for (int l = 0; l < 4; ++l) {
+          ASSERT_NEAR(array(i, j, k, l), result(i, k, j, l), 1e-12);
+        }
+      }
+    }
+  }
+}
+
+
 #include <ndarray_math.h>
 
 TEST(NDArrayTest, MathAddSub) {
