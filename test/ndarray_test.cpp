@@ -13,7 +13,7 @@ template<typename T>
 void initialize_array(ndarray::ndarray<T> &array) {
   // Specify the engine and distribution.
   std::mt19937 mersenne_engine(1);  // Generates pseudo-random integers
-  std::uniform_int_distribution<double> dist{0.0, 10.0};
+  std::uniform_real_distribution<double> dist{0.0, 10.0};
 
   std::generate(array.data().get(), array.data().get() + array.size(), [&dist, &mersenne_engine]() -> T {
                   return T(dist(mersenne_engine));
@@ -59,7 +59,7 @@ TEST(NDArrayTest, Scalar) {
   initialize_array(array);
   float value = array(0, 1, 2, 3, 4);
   std::complex<double> value2 = array(0, 1, 2, 3, 4);
-  ASSERT_NEAR(value, value2.real(), 1e-12);
+  ASSERT_NEAR(value, value2.real(), 1e-8);
 
   // take reference to an element
   double &val = array(0, 1, 2, 3, 4);
