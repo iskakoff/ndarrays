@@ -9,6 +9,7 @@
 #include <ndarray.h>
 #include <complex>
 
+/// TODO (Aleks): move initialize_array to separate general header and make it inline
 template<typename T>
 void initialize_array(ndarray::ndarray<T> &array) {
   // Specify the engine and distribution.
@@ -158,6 +159,8 @@ TEST(NDArrayTest, Transpose) {
   }
 }
 
+
+/// TODO (Aleks): move ndarray_math to separate file
 
 #include <ndarray_math.h>
 

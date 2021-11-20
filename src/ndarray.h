@@ -177,9 +177,9 @@ namespace ndarray {
       return &data_.get()[offset_ + get_index(inds...)];
     }
 
-    /// TODO: write comments
-    // - return ndarray with new shape to be shape[sizeof...(indices):] if sizeof...(indices) < shape or 0
-    // - implicit conversion between scalar types and ndarray
+    // TODO (Aleks): 1. write comments
+    // TODO (Aleks): 2. return ndarray with new shape to be shape[sizeof...(indices):] if sizeof...(indices) < shape or 0
+    // TODO (Aleks): 3. implicit conversion between scalar types and ndarray
     template<typename...Indices>
     ndarray<T> operator()(Indices...inds) {
 #ifndef NDEBUG
@@ -239,14 +239,13 @@ namespace ndarray {
       if (from.length() != dim()) {
         throw std::runtime_error("Number of transpose indices and array dimension are different size.");
       }
-      /*
-       * TODO:
-       * 1. check that all indices of input are in the output indices - throw exception if not
-       * 2. remove leading and trailing spaces from indices - possible option do regular expression
-       * 3. check that all indices are Latin letters - possible option do regular expression
-       * 4. Add tests for 1-3.
-       *
-       */
+
+
+      // TODO (Sergei): 1. check that all indices of input are in the output indices - throw exception if not
+      // TODO (Sergei): 2. remove leading and trailing spaces from indices - possible option do regular expression
+      // TODO (Sergei): 3. check that all indices are Latin letters - possible option do regular expression
+      // TODO (Sergei): 4. Add tests for 1-3.
+
 
       std::map<char, size_t> index_map;
       for (size_t i = 0; i < to.length(); ++i) {
