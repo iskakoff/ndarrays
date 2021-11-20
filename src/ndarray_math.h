@@ -15,9 +15,7 @@ namespace ndarray {
   // inplace operators
 
   template<typename T1, typename T2>
-  typename std::enable_if<std::is_convertible<T2, T1>::value, ndarray < T1> >
-
-  ::type &
+  typename std::enable_if<std::is_convertible<T2, T1>::value, ndarray < T1> >::type &
   operator+=(ndarray <T1> &first, const ndarray <T2> &second) {
     using result_t = decltype(T1{} + T2{});
 #ifndef NDEBUG
@@ -34,9 +32,7 @@ namespace ndarray {
   }
 
   template<typename T1, typename T2>
-  typename std::enable_if<std::is_convertible<T2, T1>::value, ndarray < T1> >
-
-  ::type &
+  typename std::enable_if<std::is_convertible<T2, T1>::value, ndarray < T1> >::type &
   operator-=(ndarray <T1> &first, const ndarray <T2> &second) {
     using result_t = decltype(T1{} - T2{});
 #ifndef NDEBUG
@@ -91,9 +87,7 @@ namespace ndarray {
 
   // Binary operations with scalars
   template<typename T1, typename T2>
-  typename std::enable_if<is_scalar<T2>::value, ndarray < decltype(T1{} + T2{})> >
-
-  ::type
+  typename std::enable_if<is_scalar<T2>::value, ndarray < decltype(T1{} + T2{})> >::type
   operator+(const ndarray <T1> &first, T2 second) {
     using result_t = decltype(T1{} + T2{});
     ndarray<result_t> result(first.shape());
@@ -105,17 +99,13 @@ namespace ndarray {
   };
 
   template<typename T1, typename T2>
-  typename std::enable_if<is_scalar<T1>::value, ndarray < decltype(T1{} + T2{})> >
-
-  ::type
+  typename std::enable_if<is_scalar<T1>::value, ndarray < decltype(T1{} + T2{})> >::type
   operator+(T1 first, const ndarray <T2> &second) {
     return second + first;
   }
 
   template<typename T1, typename T2>
-  typename std::enable_if<is_scalar<T2>::value, ndarray < decltype(T1{} - T2{})> >
-
-  ::type
+  typename std::enable_if<is_scalar<T2>::value, ndarray < decltype(T1{} - T2{})> >::type
   operator-(const ndarray <T1> &first, T2 second) {
     using result_t = decltype(T1{} - T2{});
     ndarray<result_t> result(first.shape());
@@ -127,9 +117,7 @@ namespace ndarray {
   };
 
   template<typename T1, typename T2>
-  typename std::enable_if<is_scalar<T1>::value, ndarray < decltype(T1{} - T2{})> >
-
-  ::type
+  typename std::enable_if<is_scalar<T1>::value, ndarray < decltype(T1{} - T2{})> >::type
   operator-(T1 first, const ndarray <T2> &second) {
     return second - first;
   }
