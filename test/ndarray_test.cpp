@@ -1,26 +1,16 @@
 /*
- * Copyright (c) 2021 University of Michigan.
+ * Copyright (c) 2021-2022 Sergei Iskakov
  *
  */
 
+#include <gtest/gtest.h>
+
+#include <complex>
 #include <random>
 
-#include <gtest/gtest.h>
 #include <ndarray.h>
-#include <complex>
 
-/// TODO (Aleks): move initialize_array to separate general header and make it inline
-template<typename T>
-void initialize_array(ndarray::ndarray<T> &array) {
-  // Specify the engine and distribution.
-  std::mt19937 mersenne_engine(1);  // Generates pseudo-random integers
-  std::uniform_real_distribution<double> dist{0.0, 10.0};
-
-  std::generate(array.data().get(), array.data().get() + array.size(), [&dist, &mersenne_engine]() -> T {
-                  return T(dist(mersenne_engine));
-                }
-  );
-}
+#include "common.h"
 
 
 TEST(NDArrayTest, Init) {
@@ -75,13 +65,15 @@ TEST(NDArrayTest, Scalar) {
   ASSERT_NEAR(val, slice(2, 3, 4), 1e-12);
 
   double v;
+#ifndef NDEBUG
   EXPECT_ANY_THROW((v = array(0, 1)));
-
+#endif
   array(0, 1, 1, 1, 1) = 33.0;
   ASSERT_NEAR(33.0, slice(1, 1, 1), 1e-12);
 
 }
 
+#ifndef NDEBUG
 TEST(NDArrayTest, WrongDimensions) {
   ndarray::ndarray<double> array(1, 2, 3, 4, 5);
   initialize_array(array);
@@ -93,6 +85,7 @@ TEST(NDArrayTest, WrongDimensions) {
   EXPECT_ANY_THROW(ndarray::ndarray<double>(array, 1, 2, 3, 4, 5));
   EXPECT_ANY_THROW(ndarray::ndarray<double>(array, 0, 0, 0, 0, 0, 0));
 }
+#endif
 
 void test_const_array(ndarray::ndarray<double> &arr1, const ndarray::ndarray<double> &arr2) {
   ndarray::ndarray<const double> slice = arr2(0, 1, 2);
@@ -132,6 +125,42 @@ TEST(NDArrayTest, Copy) {
   ASSERT_FALSE(std::abs(double(arr1(0, 1, 2, 0, 0)) - double(arr5(0, 1, 2, 0, 0))) < 1e-9);
 }
 
+TEST(NDArrayTest, CopyOfSlice) {
+  ndarray::ndarray<double> arr1(1, 2, 3, 4, 5);
+  initialize_array(arr1);
+  // create const array
+  ndarray::ndarray<double> arr2 = arr1(0, 1);
+  // make copy of const array to array of consts
+  ndarray::ndarray<double> arr3 = arr2.copy();
+  ASSERT_NEAR(arr1(0, 1, 2, 0, 0), arr2(2, 0, 0), 1e-12);
+  ASSERT_NEAR(arr1(0, 1, 2, 0, 0), arr3(2, 0, 0), 1e-12);
+  for (int i = 0; i < 1; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      for (int k = 0; k < 3; ++k) {
+        ASSERT_NEAR(arr2(i, j, k), arr3(i, j, k), 1e-12);
+      }
+    }
+  }
+  // change value in origin
+  arr1(0, 1, 2, 2, 2) = -5;
+  ASSERT_FALSE(std::abs(double(arr2(2, 2, 2)) - double(arr3(2, 2, 2))) < 1e-12);
+}
+
+
+TEST(NDArrayTest, SetValue) {
+  ndarray::ndarray<double> arr1(1, 2, 3, 4, 5);
+  initialize_array(arr1);
+  double value = arr1(0,0,0,0,0);
+  arr1.set_value(value + 2.0);
+  ASSERT_TRUE(std::all_of(arr1.begin(), arr1.end(),
+                          [&](double x) {return std::abs(x-(value + 2.0))<1e-12;})
+                          );
+  arr1.set_zero();
+  ASSERT_TRUE(std::all_of(arr1.begin(), arr1.end(),
+                          [&](double x) {return std::abs(x)<1e-12;})
+  );
+}
+
 TEST(NDArrayTest, Reshape) {
   ndarray::ndarray<double> array(1, 2, 3, 4, 5);
   initialize_array(array);
@@ -143,11 +172,16 @@ TEST(NDArrayTest, Reshape) {
 }
 
 TEST(NDArrayTest, Transpose) {
-  ndarray::ndarray<double> array(1, 2, 3, 4);
+  ndarray::ndarray<double> array(50, 20, 3, 4);
   initialize_array(array);
   ASSERT_THROW(array.transpose("ijkl->ikl"), std::runtime_error);
   ASSERT_THROW(array.transpose("ijk->ikj"), std::runtime_error);
-  ndarray::ndarray<double> result = array.transpose("ijkl->ikjl");
+  ASSERT_THROW(array.transpose("ijkl->ikj1"), std::runtime_error);
+  ASSERT_THROW(array.transpose("ijk1->ikjl"), std::runtime_error);
+#ifndef NDEBUG
+  ASSERT_THROW(array.transpose("ijkl->ikjm"), std::runtime_error);
+#endif
+  ndarray::ndarray<double> result = array.transpose("  ijkl -> ikjl ");
   for (int i = 0; i < 1; ++i) {
     for (int j = 0; j < 2; ++j) {
       for (int k = 0; k < 3; ++k) {
@@ -157,55 +191,4 @@ TEST(NDArrayTest, Transpose) {
       }
     }
   }
-}
-
-
-/// TODO (Aleks): move ndarray_math to separate file
-
-#include <ndarray_math.h>
-
-TEST(NDArrayTest, MathAddSub) {
-  ndarray::ndarray<double> arr1(1, 2, 3, 4);
-  initialize_array(arr1);
-  ndarray::ndarray<double> arr2(1, 2, 3, 4);
-  initialize_array(arr2);
-  ndarray::ndarray<double> arr3 = arr1 + arr2;
-  ASSERT_NEAR(double(arr1(0, 1, 2, 0)
-                  +arr2(0, 1, 2, 0)), arr3(0, 1, 2, 0), 1e-12);
-  ndarray::ndarray<double> arr4 = arr1.copy();
-  arr1 += arr2;
-  ASSERT_NEAR(arr1(0, 1, 2, 0), arr3(0, 1, 2, 0), 1e-12);
-  arr1 -= arr2;
-  ASSERT_NEAR(arr1(0, 1, 0, 2), arr4(0, 1, 0, 2), 1e-12);
-}
-
-TEST(NDArrayTest, MathAddSubConversion) {
-  ndarray::ndarray<double> arr1(1, 2, 3, 4);
-  initialize_array(arr1);
-  ndarray::ndarray<std::complex<double> > arr2(1, 2, 3, 4);
-  initialize_array(arr2);
-  ndarray::ndarray<std::complex<double> > arr3 = arr1 + arr2;
-  ndarray::ndarray<std::complex<double> > arr4 = arr3 - arr1;
-  std::complex<double> a1 = arr1(0, 1, 0, 2);
-  std::complex<double> a2 = arr2(0, 1, 0, 2);
-  std::complex<double> a3 = arr3(0, 1, 0, 2);
-  std::complex<double> a4 = arr4(0, 1, 0, 2);
-
-  std::complex<double> a12 = a1 + a2;
-  ASSERT_NEAR(a12.real(), a3.real(), 1e-12);
-  ASSERT_NEAR(a2.real(), a4.real(), 1e-12);
-}
-
-
-TEST(NDArrayTest, MathScalarAddSub) {
-  ndarray::ndarray<double> arr1(1, 2, 3, 4);
-  initialize_array(arr1);
-  double shift = 15.0;
-  ndarray::ndarray<double> arr2 = arr1 + shift;
-  ASSERT_NEAR(arr1(0, 1, 2, 2) + 15.0, arr2(0, 1, 2, 2), 1e-12);
-  ndarray::ndarray<double> arr3 = arr2 - shift;
-  ASSERT_NEAR(arr1(0, 1, 2, 0), arr3(0, 1, 2, 0), 1e-12);
-  ndarray::ndarray<double> arr4 = shift + arr1;
-  ASSERT_NEAR(arr4(0, 1, 0, 2), arr2(0, 1, 0, 2), 1e-12);
-
 }

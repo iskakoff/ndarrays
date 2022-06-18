@@ -1,4 +1,10 @@
-#pragma once
+/*
+ * Copyright (c) 2021-2022 Sergei Iskakov
+ *
+ */
+
+#ifndef ALPS_NDARRAY_H
+#define ALPS_NDARRAY_H
 
 #include <algorithm>
 #include <memory>
@@ -8,6 +14,8 @@
 #include <string>
 #include <vector>
 #include <map>
+
+#include <string_utils.h>
 
 namespace ndarray {
 
@@ -42,15 +50,15 @@ namespace ndarray {
      */
     template<size_t D>
     ndarray(const std::array<size_t, D> &shape) : shape_(shape.begin(), shape.end()),
-                                                  strides_(get_strides(shape)),
-                                                  size_(get_size(shape)), offset_(0),
+                                                  strides_(strides_for_shape(shape)),
+                                                  size_(size_for_shape(shape)), offset_(0),
                                                   data_(new T[size_], std::default_delete<T[]>()) {
       set_value(0.0);
     }
 
     ndarray(const std::vector<size_t> &shape) : shape_(shape.begin(), shape.end()),
-                                                strides_(get_strides(shape)),
-                                                size_(get_size(shape)), offset_(0),
+                                                strides_(strides_for_shape(shape)),
+                                                size_(size_for_shape(shape)), offset_(0),
                                                 data_(new T[size_], std::default_delete<T[]>()) {
       set_value(0.0);
     }
@@ -67,7 +75,7 @@ namespace ndarray {
         ndarray(ref, std::array<size_t, sizeof...(inds) + 1ul>{{size_t(d1), size_t(inds)...}}) {}
 
     /**
-     * Constructor for slicing of existing instance.
+     * Constructor for slicing of an existing instance.
      *
      * @param[in] ref is existing instance for slicing.
      * @param[in] inds is array contains indices for slicing.
@@ -75,8 +83,8 @@ namespace ndarray {
     template<typename T2=typename std::remove_const<T>::type, size_t D>
     ndarray(const ndarray<T2> &ref, const std::array<size_t, D> &inds) :
         shape_(get_shape(ref.shape(), inds)),
-        strides_(get_strides(shape_)),
-        size_(get_size(shape_)),
+        strides_(strides_for_shape(shape_)),
+        size_(size_for_shape(shape_)),
         offset_(ref.offset() + get_offset(ref.strides(), inds)),
         data_(ref.data()) {}
 
@@ -98,10 +106,12 @@ namespace ndarray {
      * Conversion into scalar type
      *
      * @tparam Scalar type of LHS argument
-     * @return value of zero-dimension tensor
+     * @return value of zero-dimension ndarray
      */
     template<typename Scalar, typename = typename std::enable_if<
-        is_scalar<Scalar>::value && std::is_convertible<T, Scalar>::value>::type>
+        is_scalar<Scalar>::value &&
+        std::is_convertible<T, Scalar>::value &&
+       !std::is_same<T, Scalar>::value>::type>
     operator Scalar() const {
 #ifndef NDEBUG
       check_zero_dimension();
@@ -129,11 +139,11 @@ namespace ndarray {
     }
 
     /**
-     * Assign scalar value to zero-dimension tensor
+     * Assign scalar value to zero-dimension ndarray
      *
      * @tparam Scalar - scalar type
      * @param rhs     - value of a scalar
-     * @return current tensor with updated value
+     * @return current ndarray with updated value
      */
     template<typename Scalar, typename = typename std::enable_if<is_scalar<Scalar>::value>::type>
     ndarray<T> &operator=(const Scalar rhs) {
@@ -152,7 +162,7 @@ namespace ndarray {
      */
     ndarray<typename std::remove_const<T>::type> copy() const {
       ndarray<typename std::remove_const<T>::type> ret(shape_);
-      std::copy(data_.get(), data_.get() + size_, ret.data().get());
+      std::copy(begin(), end(), ret.begin());
       return ret;
     }
 
@@ -177,9 +187,13 @@ namespace ndarray {
       return &data_.get()[offset_ + get_index(inds...)];
     }
 
-    // TODO (Aleks): 1. write comments
-    // TODO (Aleks): 2. return ndarray with new shape to be shape[sizeof...(indices):] if sizeof...(indices) < shape or 0
-    // TODO (Aleks): 3. implicit conversion between scalar types and ndarray
+    /**
+     * Extract a sub-ndarray at a given coordinates `inds`
+     *
+     * @tparam Indices type of indices (should be convertible to size_t)
+     * @param inds - coordinates of a sub-ndarray
+     * @return sub-ndarray at `inds` coordinates
+     */
     template<typename...Indices>
     ndarray<T> operator()(Indices...inds) {
 #ifndef NDEBUG
@@ -190,6 +204,13 @@ namespace ndarray {
       return res;
     };
 
+    /**
+     * Extract a const sub-ndarray at a given coordinates `ind`
+     *
+     * @tparam Indices type of indices (should be convertible to size_t)
+     * @param inds - coordinates of a sub-ndarray
+     * @return const sub-ndarray at `inds` coordinates
+     */
     template<typename...Indices>
     ndarray<const typename std::remove_const<T>::type> operator()(Indices...inds) const {
 #ifndef NDEBUG
@@ -200,11 +221,15 @@ namespace ndarray {
       return res;
     };
 
-    // ToDo make test
+    /**
+     * Set all elements of an ndarray to be `value`
+     *
+     * @tparam T2 - type of a value (should be convertible to type of an ndarray)
+     * @param value - value of all elements of ndarray
+     */
     template<typename T2>
-    typename std::enable_if<is_scalar<T2>::value && std::is_convertible<T2, T>::value>::type
-    set_value(T2 value) {
-      std::fill(data_.get() + offset_, data_.get() + offset_ + size_, T(value));
+    typename std::enable_if<is_scalar<T2>::value && std::is_convertible<T2, T>::value>::type set_value(T2 value) {
+      std::fill(begin(), end(), T(value));
     }
 
     void set_zero() {
@@ -216,36 +241,38 @@ namespace ndarray {
       return result.inplace_reshape(shape);
     }
 
-    ndarray<T> inplace_reshape(const std::vector<size_t> &shape) {
-#ifndef NDEBUG
-      if (get_size(shape) != size_)
-        throw std::logic_error("new shape is not consistent with old one");
-#endif
-      shape_ = shape;
-      strides_ = get_strides(shape);
-      return *this;
-    }
-
     ndarray<T> transpose(const std::string &string_pattern) const {
       size_t find = string_pattern.find("->");
       if (find == std::string::npos) {
         throw std::runtime_error("Incorrect transpose pattern.");
       }
-      std::string from = string_pattern.substr(0, find);
-      std::string to = string_pattern.substr(find + 2, string_pattern.size() - 1);
+      std::string from = trim(string_pattern.substr(0, find));
+      std::string to = trim(string_pattern.substr(find + 2, string_pattern.size() - 1));
+
       if (from.length() != to.length()) {
         throw std::runtime_error("Transpose source and target indices have different size.");
       }
       if (from.length() != dim()) {
         throw std::runtime_error("Number of transpose indices and array dimension are different size.");
       }
+      if((!all_latin(from)) || (!all_latin(to))) {
+        throw std::runtime_error("Transpose indices should be latin letters.");
+      }
 
-
-      // TODO (Sergei): 1. check that all indices of input are in the output indices - throw exception if not
-      // TODO (Sergei): 2. remove leading and trailing spaces from indices - possible option do regular expression
-      // TODO (Sergei): 3. check that all indices are Latin letters - possible option do regular expression
-      // TODO (Sergei): 4. Add tests for 1-3.
-
+#ifndef NDEBUG
+      for(const auto & s1 : from) {
+        bool in = false;
+        for(const auto & s2 : to) {
+          if(s1 == s2) {
+            in = true;
+            break;
+          }
+        }
+        if(!in) {
+          throw std::runtime_error("Some LHS transpose indices are not found in RHS transpose indices.");
+        }
+      }
+#endif
 
       std::map<char, size_t> index_map;
       for (size_t i = 0; i < to.length(); ++i) {
@@ -259,6 +286,22 @@ namespace ndarray {
     }
 
     // Data accessors
+
+    const T* begin() const {
+      return data_.get() + offset_;
+    }
+
+    T* begin() {
+      return data_.get() + offset_;
+    }
+
+    const T* end() const {
+      return data_.get() + offset_ + size_;
+    }
+    T* end() {
+      return data_.get() + offset_ + size_;
+    }
+
 
     const std::shared_ptr<T> &data() const {
       return data_;
@@ -320,14 +363,28 @@ namespace ndarray {
       return std::inner_product(inds.begin(), inds.end(), strides.begin(), 0ul);
     }
 
+    /**
+     * Compute size of an ndarray with given shape
+     *
+     * @tparam Container - type of a shape array
+     * @param shape - shape of an ndarray
+     * @return number of elements that ndarray of a given shape would have
+     */
     template<typename Container>
-    size_t get_size(const Container &shape) const {
+    size_t size_for_shape(const Container &shape) const {
       return std::accumulate(shape.begin(), shape.end(), 1ul, std::multiplies<size_t>());
     }
 
+    /**
+     * Extract a shape of a sub-ndarray of a given ndarray of `old_shape` shape
+     *
+     * @tparam D - dimension of a new ndarray
+     * @param old_shape - shape of an existing ndarray
+     * @param inds - coordinates of a sub-ndarray
+     * @return shape of a sub-ndarray
+     */
     template<size_t D>
-    std::vector<size_t>
-    get_shape(const std::vector<size_t> &old_shape, const std::array<size_t, D> &inds) const {
+    std::vector<size_t> get_shape(const std::vector<size_t> &old_shape, const std::array<size_t, D> &inds) const {
 #ifndef NDEBUG
       size_t num_of_inds = D;
       check_dimensions(old_shape, num_of_inds);
@@ -341,8 +398,15 @@ namespace ndarray {
       return shape;
     }
 
+    /**
+     * Compute strides for an ndarray with specific shape
+     *
+     * @tparam Container - container type for a shape object (should have `size()` and `data()` functions
+     * @param shape - shape of an ndarray
+     * @return a vector of strides for an ndarray of given shape
+     */
     template<typename Container>
-    std::vector<size_t> get_strides(const Container &shape) const {
+    std::vector<size_t> strides_for_shape(const Container &shape) const {
       std::vector<size_t> str(shape.size());
       if (shape.size() == 0)
         return str;
@@ -356,7 +420,7 @@ namespace ndarray {
      * Check that array is zero-dimension. Throw an exception if it's not.
      */
     void check_zero_dimension() const {
-      if (shape_.size() != 0) {
+      if (! shape_.empty()) {
         throw std::runtime_error("Array is not directly castable to a scalar. Array's dimension is " +
                                  std::to_string(shape_.size()));
       }
@@ -368,6 +432,16 @@ namespace ndarray {
                                  std::to_string(num_of_inds) + ") is larger than array's dimension (" +
                                  std::to_string(shape.size()) + ")");
       }
+    }
+
+    ndarray<T> inplace_reshape(const std::vector<size_t> &shape) {
+#ifndef NDEBUG
+      if (size_for_shape(shape) != size_)
+        throw std::logic_error("new shape is not consistent with old one");
+#endif
+      shape_ = shape;
+      strides_ = strides_for_shape(shape);
+      return *this;
     }
 
     ndarray<T> transpose_inner(const std::vector<size_t> &pattern) const {
@@ -392,3 +466,5 @@ namespace ndarray {
     }
   };
 }
+
+#endif // ALPS_NDARRAY_H
