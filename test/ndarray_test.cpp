@@ -171,24 +171,10 @@ TEST(NDArrayTest, Reshape) {
   ASSERT_EQ(reshaped_array.strides(), strides);
 }
 
-TEST(NDArrayTest, Transpose) {
+TEST(NDArrayTest, RangeLoop) {
   ndarray::ndarray<double> array(50, 20, 3, 4);
-  initialize_array(array);
-  ASSERT_THROW(array.transpose("ijkl->ikl"), std::runtime_error);
-  ASSERT_THROW(array.transpose("ijk->ikj"), std::runtime_error);
-  ASSERT_THROW(array.transpose("ijkl->ikj1"), std::runtime_error);
-  ASSERT_THROW(array.transpose("ijk1->ikjl"), std::runtime_error);
-#ifndef NDEBUG
-  ASSERT_THROW(array.transpose("ijkl->ikjm"), std::runtime_error);
-#endif
-  ndarray::ndarray<double> result = array.transpose("  ijkl -> ikjl ");
-  for (int i = 0; i < 1; ++i) {
-    for (int j = 0; j < 2; ++j) {
-      for (int k = 0; k < 3; ++k) {
-        for (int l = 0; l < 4; ++l) {
-          ASSERT_NEAR(array(i, j, k, l), result(i, k, j, l), 1e-12);
-        }
-      }
-    }
+  array.set_value(2.0);
+  for(auto v : array) {
+    ASSERT_NEAR(v, 2.0, 1e-12);
   }
 }

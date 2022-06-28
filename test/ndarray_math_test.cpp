@@ -104,3 +104,26 @@ TEST(NDArrayMathTest, Comparison) {
   ASSERT_TRUE(arr3 == arr4);
   ASSERT_TRUE(arr5 == arr6);
 }
+
+
+TEST(NDArrayTest, Transpose) {
+  ndarray::ndarray<double> array(5, 5, 3, 4);
+  initialize_array(array);
+  ASSERT_THROW(transpose(array, "ijkl->ikl"), std::runtime_error);
+  ASSERT_THROW(transpose(array, "ijk->ikj"), std::runtime_error);
+  ASSERT_THROW(transpose(array, "ijkl->ikj1"), std::runtime_error);
+  ASSERT_THROW(transpose(array, "ijk1->ikjl"), std::runtime_error);
+#ifndef NDEBUG
+  ASSERT_THROW(transpose(array, "ijkl->ikjm"), std::runtime_error);
+#endif
+  ndarray::ndarray<double> result = transpose(array, "  ijkl -> ikjl ");
+  for (int i = 0; i < 1; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      for (int k = 0; k < 3; ++k) {
+        for (int l = 0; l < 4; ++l) {
+          ASSERT_NEAR(array(i, j, k, l), result(i, k, j, l), 1e-12);
+        }
+      }
+    }
+  }
+}
