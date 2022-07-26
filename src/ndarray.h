@@ -246,6 +246,16 @@ namespace ndarray {
       return result.inplace_reshape(shape);
     }
 
+    ndarray<T> inplace_reshape(const std::vector<size_t> &shape) {
+#ifndef NDEBUG
+      if (size_for_shape(shape) != size_)
+        throw std::logic_error("new shape is not consistent with old one");
+#endif
+      shape_ = shape;
+      strides_ = strides_for_shape(shape);
+      return *this;
+    }
+
     // Data accessors
 
     const T* begin() const {
@@ -393,16 +403,6 @@ namespace ndarray {
                                  std::to_string(num_of_inds) + ") is larger than array's dimension (" +
                                  std::to_string(shape.size()) + ")");
       }
-    }
-
-    ndarray<T> inplace_reshape(const std::vector<size_t> &shape) {
-#ifndef NDEBUG
-      if (size_for_shape(shape) != size_)
-        throw std::logic_error("new shape is not consistent with old one");
-#endif
-      shape_ = shape;
-      strides_ = strides_for_shape(shape);
-      return *this;
     }
   };
 }
