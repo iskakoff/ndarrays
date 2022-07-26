@@ -33,6 +33,11 @@ namespace ndarray {
     static_assert(is_scalar<T>::value, "");
 
     /**
+     * Default constructor
+     */
+    ndarray() : shape_(0), strides_(0), size_(0), offset_(0) {}
+
+    /**
      * Constructor for initialization from dimensions (allocates memory for attribute data_).
      *
      * @tparam Indices type for indices.
@@ -49,14 +54,14 @@ namespace ndarray {
      * @param[in] shape is array while D is its dimension.
      */
     template<size_t D>
-    ndarray(const std::array<size_t, D> &shape) : shape_(shape.begin(), shape.end()),
+    explicit ndarray(const std::array<size_t, D> &shape) : shape_(shape.begin(), shape.end()),
                                                   strides_(strides_for_shape(shape)),
                                                   size_(size_for_shape(shape)), offset_(0),
                                                   data_(new T[size_], std::default_delete<T[]>()) {
       set_value(0.0);
     }
 
-    ndarray(const std::vector<size_t> &shape) : shape_(shape.begin(), shape.end()),
+    explicit ndarray(const std::vector<size_t> &shape) : shape_(shape.begin(), shape.end()),
                                                 strides_(strides_for_shape(shape)),
                                                 size_(size_for_shape(shape)), offset_(0),
                                                 data_(new T[size_], std::default_delete<T[]>()) {
