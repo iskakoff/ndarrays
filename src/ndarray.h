@@ -210,6 +210,28 @@ namespace ndarray {
     };
 
     /**
+     * Extract a scalar data at a given coordinates `inds`
+     *
+     * TODO: add tests
+     *
+     * @tparam Indices type of indices (should be convertible to size_t)
+     * @param inds - coordinates of a sub-ndarray
+     * @return value at `inds` coordinates
+     */
+    template<typename...Indices>
+    const T & d(Indices...inds) const {
+#ifndef NDEBUG
+      size_t num_of_inds = sizeof...(Indices);
+      if(num_of_inds != shape.size()) {
+        throw std::runtime_error("Number of indices (" +
+                                 std::to_string(num_of_inds) + ") is not equal to array's dimension (" +
+                                 std::to_string(shape.size()) + ")");
+      }
+#endif
+      return data_.get()[offset_ + get_index(inds...)];
+    }
+
+    /**
      * Extract a const sub-ndarray at a given coordinates `ind`
      *
      * @tparam Indices type of indices (should be convertible to size_t)
@@ -242,15 +264,18 @@ namespace ndarray {
     }
 
     ndarray<T> reshape(const std::vector<size_t> &shape) const {
+#ifndef NDEBUG
+      if (size_for_shape(shape) != size_)
+        throw std::logic_error("new shape is not consistent with old one");
+#endif
       ndarray<T> result(*this);
       return result.inplace_reshape(shape);
     }
 
     ndarray<T> inplace_reshape(const std::vector<size_t> &shape) {
-#ifndef NDEBUG
-      if (size_for_shape(shape) != size_)
+      if(offset_ != 0) {
         throw std::logic_error("new shape is not consistent with old one");
-#endif
+      }
       shape_ = shape;
       strides_ = strides_for_shape(shape);
       return *this;
