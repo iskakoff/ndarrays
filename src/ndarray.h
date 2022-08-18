@@ -219,7 +219,29 @@ namespace ndarray {
      * @return value at `inds` coordinates
      */
     template<typename...Indices>
-    const T & d(Indices...inds) const {
+    const T & at(Indices...inds) const {
+#ifndef NDEBUG
+      size_t num_of_inds = sizeof...(Indices);
+      if(num_of_inds != shape.size()) {
+        throw std::runtime_error("Number of indices (" +
+                                 std::to_string(num_of_inds) + ") is not equal to array's dimension (" +
+                                 std::to_string(shape.size()) + ")");
+      }
+#endif
+      return data_.get()[offset_ + get_index(inds...)];
+    }
+
+    /**
+     * Extract a scalar data at a given coordinates `inds`
+     *
+     * TODO: add tests
+     *
+     * @tparam Indices type of indices (should be convertible to size_t)
+     * @param inds - coordinates of a sub-ndarray
+     * @return value at `inds` coordinates
+     */
+    template<typename...Indices>
+    T & at(Indices...inds) {
 #ifndef NDEBUG
       size_t num_of_inds = sizeof...(Indices);
       if(num_of_inds != shape.size()) {
