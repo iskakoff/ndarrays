@@ -178,3 +178,11 @@ TEST(NDArrayTest, RangeLoop) {
     ASSERT_NEAR(v, 2.0, 1e-12);
   }
 }
+
+
+TEST(NDArrayTest, ElementAccess) {
+  ndarray::ndarray<double> arr1(1, 2, 3, 4, 5);
+  initialize_array(arr1);
+  ndarray::ndarray<double> arr2 = arr1(0,1,2);
+  ASSERT_TRUE(arr1.at(0,1,2,1,1) == arr2(1,1));
+}
