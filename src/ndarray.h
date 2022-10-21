@@ -222,10 +222,10 @@ namespace ndarray {
     const T & at(Indices...inds) const {
 #ifndef NDEBUG
       size_t num_of_inds = sizeof...(Indices);
-      if(num_of_inds != shape.size()) {
+      if(num_of_inds != shape_.size()) {
         throw std::runtime_error("Number of indices (" +
                                  std::to_string(num_of_inds) + ") is not equal to array's dimension (" +
-                                 std::to_string(shape.size()) + ")");
+                                 std::to_string(shape_.size()) + ")");
       }
 #endif
       return data_.get()[offset_ + get_index(inds...)];
@@ -244,10 +244,10 @@ namespace ndarray {
     T & at(Indices...inds) {
 #ifndef NDEBUG
       size_t num_of_inds = sizeof...(Indices);
-      if(num_of_inds != shape.size()) {
+      if(num_of_inds != shape_.size()) {
         throw std::runtime_error("Number of indices (" +
                                  std::to_string(num_of_inds) + ") is not equal to array's dimension (" +
-                                 std::to_string(shape.size()) + ")");
+                                 std::to_string(shape_.size()) + ")");
       }
 #endif
       return data_.get()[offset_ + get_index(inds...)];
