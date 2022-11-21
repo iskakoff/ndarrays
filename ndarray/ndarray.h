@@ -15,7 +15,7 @@
 #include <vector>
 #include <map>
 
-#include <string_utils.h>
+#include <ndarray/string_utils.h>
 
 namespace ndarray {
 

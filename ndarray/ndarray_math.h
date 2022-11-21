@@ -6,7 +6,7 @@
 #ifndef ALPS_NDARRAY_MATH_H
 #define ALPS_NDARRAY_MATH_H
 
-#include <ndarray.h>
+#include <ndarray/ndarray.h>
 
 namespace ndarray {
 
