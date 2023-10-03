@@ -69,6 +69,26 @@ namespace ndarray {
     }
 
     /**
+     * Constructor for initialization from array of dimensions (allocates memory for attribute data_).
+     *
+     * @param[in] shape is array while D is its dimension.
+     */
+    template<size_t D>
+    explicit ndarray(T* data, const std::array<size_t, D> &shape) : shape_(shape.begin(), shape.end()),
+                                                           strides_(strides_for_shape(shape)),
+                                                           size_(size_for_shape(shape)), offset_(0),
+                                                           data_(data, [](T*){}) {
+      set_value(0.0);
+    }
+
+    explicit ndarray(T* data, const std::vector<size_t> &shape) : shape_(shape.begin(), shape.end()),
+                                                         strides_(strides_for_shape(shape)),
+                                                         size_(size_for_shape(shape)), offset_(0),
+                                                         data_(data, [](T*){}) {
+      set_value(0.0);
+    }
+
+    /**
      * Constructor for slicing of existing instance.
      *
      * @tparam Indices type for indices.
